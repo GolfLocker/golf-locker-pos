@@ -1,0 +1,3902 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#297900">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Golf Locker POS</title>
+
+  <link rel="manifest" href="?file=manifest">
+  <link rel="apple-touch-icon" href="https://shop.golf-locker.nl/wp-content/uploads/2024/04/Golf-Locker-Logo-1-scaled.png">
+  <script src="https://unpkg.com/@zxing/library@0.20.0"></script>
+
+  <style>
+    :root{
+      --accent:#297900; --accent-dark:#1f5f00; --accent-light:#f0f9ee;
+      --danger:#e11d48; --border:#d1d5db; --text:#1f2937; --muted:#6b7280;
+      --bg:#f8fafc; --panel:#ffffff;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
+      background:var(--bg);
+      color:var(--text);
+    }
+
+    /* ===== DESKTOP (default) ===== */
+    .appbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:10px 16px;
+      background:#fff;
+      border-bottom:2px solid var(--accent);
+      position:sticky;
+      top:0;
+      z-index:50;
+    }
+    .brand{display:flex;align-items:center;gap:10px}
+    .brand img{height:40px;width:auto;display:block}
+    .brand h1{font-size:18px;margin:0;font-weight:600;color:var(--accent)}
+    .actions{display:flex;gap:8px}
+    .btn{
+      font-size:15px;
+      padding:10px 14px;
+      border-radius:8px;
+      border:1px solid var(--border);
+      background:#fff;
+      color:var(--text);
+      cursor:pointer;
+      transition:.15s background;
+    }
+    .btn:hover{background:#f3f4f6}
+    .btn-danger{color:var(--danger);border-color:var(--danger);background:#fff}
+    .btn-primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+    .btn-primary:hover{background:var(--accent-dark)}
+    .btn-ghost{background:#fff}
+
+    .wrap{
+      max-width:1200px;
+      margin:0 auto;
+      padding:16px;
+      padding-bottom:calc(var(--footer-h,160px) + 16px);
+    }
+
+    .panel{
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:10px;
+      padding:12px 14px;
+      box-shadow:0 2px 4px rgba(0,0,0,.05);
+    }
+
+    .scanbar{display:flex;gap:10px;align-items:center}
+    .pill{
+      flex:1;
+      font-size:18px;
+      padding:10px 14px;
+      border-radius:8px;
+      border:1px solid var(--border);
+      background:#fff;
+      color:var(--text);
+    }
+    .pill::placeholder{color:var(--muted)}
+    .btn-scan{background:var(--accent);border-color:var(--accent);color:#fff}
+    .btn-cam{background:#e5e7eb;color:var(--text)}
+
+    table{width:100%;border-collapse:collapse;margin-top:6px}
+    th,td{border-bottom:1px solid var(--border);padding:10px}
+    th{background:var(--accent-light);text-align:left;color:var(--text)}
+    td input[type="number"]{
+      width:100px;
+      font-size:16px;
+      padding:6px 8px;
+      background:#fff;
+      color:var(--text);
+      border:1px solid var(--border);
+      border-radius:6px;
+    }
+    .right{text-align:right}
+    .center{text-align:center}
+
+    .footer{
+      position:fixed;
+      left:0;right:0;bottom:0;
+      z-index:100;
+      background:#fff;
+      border-top:2px solid var(--accent);
+      box-shadow:0 -3px 6px rgba(0,0,0,.10);
+      padding:10px 14px;
+      padding-bottom:calc(10px + env(safe-area-inset-bottom));
+    }
+    .footer-inner{
+      max-width:1200px;
+      margin:0 auto;
+      display:flex;
+      flex-direction:row;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:20px;
+      flex-wrap:wrap;
+    }
+    
+    .footer-left{flex:1;min-width:220px}
+    .footer-right{flex:1.2;min-width:260px}
+    .footer-right select,
+    .footer-right input.email{width:100%;margin-bottom:8px}
+    .footer-right .btn-primary{width:100%;padding:14px;font-size:18px}
+
+    .paybox label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
+    select,.email{
+      width:100%;
+      font-size:16px;
+      padding:10px 12px;
+      border-radius:8px;
+      border:1px solid var(--border);
+      background:#fff;
+      color:var(--text);
+    }
+    .total-big{font-size:30px;font-weight:700;color:var(--accent)}
+    .item-count{font-size:12px;color:var(--muted);margin-top:2px}
+    .cta .btn-primary{font-size:18px;padding:14px 16px;border-radius:10px}
+    .muted{color:var(--muted);font-size:12px}
+    #spinner{
+      position:fixed;
+      inset:0;
+      background:rgba(255,255,255,.6);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index:80;
+    }
+    #spinner>div{
+      background:#fff;
+      border:1px solid var(--border);
+      padding:14px 18px;
+      border-radius:10px;
+      color:var(--text);
+    }
+    #toast{
+      position:fixed;
+      bottom:16px;
+      left:50%;
+      transform:translateX(-50%);
+      background:var(--accent);
+      color:#fff;
+      padding:8px 12px;
+      border-radius:8px;
+      display:none;
+      z-index:90;
+    }
+
+    /* Camera */
+    #cameraWrap{display:none;margin-top:10px}
+    #cameraWrap video{
+      display:block;
+      width:100%;
+      max-height:260px;
+      border:1px solid var(--border);
+      border-radius:10px;
+    }
+
+    /* ===== MOBIEL ===== */
+    @media (max-width: 640px){
+      body { background: var(--panel); }
+      .wrap { padding: 6px; }
+      .scanbar { flex-direction: column; align-items: stretch; gap: 6px; }
+      .pill { font-size: 18px; padding: 12px 14px; width: 100%; }
+      .btn-scan, .btn-cam { width: 100%; padding: 12px 14px; font-size: 16px; border-radius: 10px; }
+      #cartTbl, #cartTbl thead, #cartTbl tbody, #cartTbl th, #cartTbl td, #cartTbl tr { display:block !important; }
+      #cartTbl thead { display:none !important; }
+      #cartTbl tbody tr {
+        background:#fff;
+        border:1px solid var(--border);
+        border-radius:12px;
+        margin:8px 0;
+        padding:10px 12px 8px;
+        position:relative;
+        box-shadow:0 2px 4px rgba(0,0,0,.05);
+      }
+      #cartTbl tbody tr td { border:none !important; padding:6px 0 !important; }
+      #cartTbl tbody tr td::before {
+        content:attr(data-label);
+        display:block;
+        font-size:11px;
+        color:var(--muted);
+        margin-bottom:2px;
+      }
+      #cartTbl input[type="number"] {
+        width:100% !important;
+        padding:10px;
+        font-size:17px;
+      }
+      #cartTbl .subtot { font-weight:600; font-size:18px; text-align:right; }
+      #cartTbl tbody tr td:last-child { position:absolute; right:8px; top:8px; }
+      #cartTbl tbody tr td:last-child .btn { padding:4px 10px; border-radius:8px; }
+      #cartTbl tfoot { display:none !important; }
+      .footer-inner { grid-template-columns:1fr !important; gap:8px; }
+      .total-big { font-size:26px; text-align:left; margin-top:6px; }
+      .cta .btn-primary { width:100%; font-size:20px; padding:16px; border-radius:12px; }
+      .muted { text-align:center; font-size:12px; }
+      #cameraWrap video { width:100%; max-height:40vh; border-radius:10px; }
+    }
+
+    /* Tabs */
+    .tabs {
+      display:flex;
+      gap:8px;
+      align-items:center;
+      margin-left:16px;
+    }
+    .tab-btn{
+      padding:8px 10px;
+      border:1px solid var(--border);
+      border-radius:8px;
+      background:#fff;
+      cursor:pointer;
+    }
+    .tab-btn.active{
+      border-color:var(--accent);
+      color:#fff;
+      background:var(--accent);
+    }
+
+    /* Views */
+    .view{display:none;}
+    .view.active{display:block;}
+
+    /* Bonnen-lijst */
+    .bonnen-toolbar{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      margin:12px 0;
+    }
+    .bonnen-search{
+      flex:1;
+      padding:10px 12px;
+      border:1px solid var(--border);
+      border-radius:8px;
+    }
+    .bon-table{width:100%;border-collapse:collapse;}
+    .bon-table th,.bon-table td{
+      padding:10px;
+      border-bottom:1px solid var(--border);
+    }
+    .bon-table th{
+      background:var(--accent-light);
+      text-align:left;
+    }
+    .bon-actions{display:flex;gap:8px;}
+
+  /* ===== SESSIE DASHBOARD ===== */
+  .sessie-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 16px;
+  }
+
+  .sessie-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    box-shadow: 0 4px 10px rgba(0,0,0,.04);
+  }
+
+  .sessie-card h4 {
+    margin: 0 0 12px;
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .sessie-stat {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
+    font-size: 14px;
+  }
+
+  .sessie-stat strong {
+    font-weight: 600;
+  }
+
+  .sessie-big {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .sessie-active-badge {
+    margin-left: 8px;
+    padding: 3px 10px;
+    font-size: 11px;
+    border-radius: 999px;
+    background: rgba(41,121,0,.1);
+    color: var(--accent);
+    font-weight: 600;
+    vertical-align: middle;
+  }
+
+  .btn-sessie {
+    padding: 8px 12px;
+    font-size: 13px;
+    border-radius: 8px;
+    border: 1px solid var(--accent);
+    background: #fff;
+    color: var(--accent);
+    cursor: pointer;
+  }
+  .btn-sessie:hover {
+    background: var(--accent-light);
+  }
+
+  /* Grid sizes (desktop) */
+  .col-4 { grid-column: span 4; }
+  .col-6 { grid-column: span 6; }
+  .col-8 { grid-column: span 8; }
+  .col-12 { grid-column: span 12; }
+  .sessie-card { align-self: start;}
+
+  /* Mobile fallback */
+  @media (max-width: 768px) {
+    .sessie-grid {
+      grid-template-columns: 1fr;
+    }
+    .col-4, .col-6, .col-8, .col-12 {
+      grid-column: span 1;
+    }
+  }
+  /* ===== SESSIE KPI + DONUT ===== */
+
+  .sessie-kpi-grid {
+    display: grid;
+    grid-template-columns: 1.4fr repeat(3, 1fr);
+    grid-template-rows: repeat(2, auto);
+    gap: 16px;
+    align-items: stretch;
+  }
+
+  .sessie-donut {
+    grid-row: span 2;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .sessie-kpi {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .sessie-kpi-grid {
+      grid-template-columns: 1fr;
+    }
+    .sessie-donut {
+      grid-row: auto;
+    }
+  }
+
+  /* Skeleton base */
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      #f0f0f0 25%,
+      #e5e7eb 37%,
+      #f0f0f0 63%
+    );
+    background-size: 400% 100%;
+    animation: skeleton-loading 1.4s ease infinite;
+    border-radius: 8px;
+  }
+
+  @keyframes skeleton-loading {
+    0% { background-position: 100% 0; }
+    100% { background-position: 0 0; }
+  }
+
+  /* Skeleton sizes */
+  .skel-line {
+    height: 14px;
+    margin-bottom: 8px;
+  }
+
+  .skel-big {
+    height: 32px;
+    margin-bottom: 12px;
+  }
+
+  .skel-kpi {
+    height: 64px;
+  }
+
+  .skel-chart {
+    height: 220px;
+  }
+
+  /* --- Code panel styling --- */
+
+  .code-panel-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-top: 12px;
+  }
+
+    /* layout */
+  .code-grid{
+    display:grid;
+    grid-template-columns: 1fr 160px;
+    gap:12px;
+    align-items:start;
+  }
+
+  .code-left{
+    display:flex;
+    flex-direction:column;
+  }
+
+  .code-right{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+
+  /* vaste ruimte voor verwijder-knop */
+  .code-clear-slot{
+    height:40px;
+  }
+
+  /* input + status */
+  .code-input{
+    width:100%;
+  }
+
+  .code-result{
+    margin-top:6px;
+    min-height:18px; /* ruimte voor “Laden…” */
+    font-size:13px;
+  }
+
+  /* knoppen */
+  .code-btn{
+    width:100%;
+  }
+
+  ///////Retour styling//////
+  td.amount,
+  th.amount {
+    text-align: center;
+  }
+
+</style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="appbar">
+    <div style="display:flex; align-items:center; gap:12px;">
+      <div class="brand">
+        <img src="https://shop.golf-locker.nl/wp-content/uploads/2024/04/Golf-Locker-Logo-1-scaled.png" alt="Golf Locker" />
+        <h1>Golf Locker — POS</h1>
+      </div>
+      <div class="tabs">
+        <button class="tab-btn active" data-view="pos">Kassa</button>
+        <button class="tab-btn" data-view="retour">Retour</button>
+        <button class="tab-btn" data-view="bonnen">Bonnen</button>
+        <button class="tab-btn" data-view="huur">Huren</button>
+        <button class="tab-btn" data-view="voorraad">Voorraad</button>
+        <button class="tab-btn" data-view="sessie">Sessie</button>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn" onclick="openEndSessionModal()">Sessie afsluiten</button>
+      <button class="btn btn-ghost" onclick="refreshNow()">Vernieuw</button>
+      <button class="btn btn-danger" onclick="newCart()" title="Nieuwe verkoop (reset)">Nieuwe verkoop</button>
+    </div>
+  </div>
+
+  <!-- Kassa -->
+  <section id="view-pos" class="view active">
+    <div class="wrap">
+      <div class="panel">
+        <div class="scanbar">
+          <input id="scan" class="pill" placeholder="Scan of typ SKU" autofocus />
+          <button class="btn btn-scan" onclick="addScan()">Toevoegen</button>
+          <button class="btn btn-cam" onclick="toggleCamera()" id="camBtn">Camera</button>
+        </div>
+
+        <div id="cameraWrap"><video id="preview" playsinline></video></div>
+
+        <table id="cartTbl">
+          <thead>
+            <tr>
+              <th style="width:120px">SKU</th>
+              <th>Omschrijving</th>
+              <th class="right" style="width:140px">Prijs</th>
+              <th class="center" style="width:110px">Aantal</th>
+              <th class="right" style="width:140px">Subtotaal</th>
+              <th style="width:60px"></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+          <tfoot>
+            <tr>
+              <td colspan="4" class="right muted">Totaal (sub)</td>
+              <td id="total" class="right">€ 0,00</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <!-- Sticky footer -->
+    <div class="footer">
+      <div class="footer-inner">
+        <div class="footer-left">
+          <div class="total-big">Totaal: <span id="totalBig">€ 0,00</span></div>
+          <div class="item-count" id="itemCount">0 artikelen</div>
+          <div id="activeCodeStatus" class="muted" style="margin-top:6px;"></div>
+        </div>
+      
+        <div class="code-panel-wrapper">
+          <div class="code-panel code-grid">
+            <div class="code-left">
+              <h3>Korting/Cadeaubon</h3>
+              <input id="codeInput" type="text" class="code-input" placeholder="Scan of plak code…">
+              <div id="codeResult" class="code-result muted"></div>
+            </div>
+            <div class="code-right">
+              <h3> </h3>
+              <button id="codeCheckBtn" class="btn btn-secondary code-btn" onclick="lookupCodeUi()">Check</button>
+              <button id="codeApplyBtn" class="btn btn-primary code-btn" onclick="applyCodeUi()">Toepassen</button>
+              <button id="codeClearBtn" class="btn btn-danger code-btn" style="visibility:hidden;" onclick="clearActiveCodeUi()">Verwijderen</button>
+            </div>
+          </div>
+        </div>
+        <div class="footer-right">
+          <label for="pay">Selecteer betaalwijze</label>
+          <select id="pay">
+            <option value="" selected>Betaalwijze</option>
+            <option value="PIN">PIN</option>
+            <option value="Contant">Contant</option>
+            <option value="Tikkie">Tikkie</option>
+            <option value="Marktplaats">Marktplaats</option>
+            <option value="Website">Website</option>
+            <option value="Overig">Overig</option>
+            <option value="Derving">Derving</option>
+          </select>
+          <input id="custEmail" class="email" placeholder="Klant e-mail (optioneel voor factuur)">
+          <button onclick="book()" class="btn-primary">Boek & Print</button>
+          <div class="muted">Boekt alle regels, print de bon en mailt een PDF factuur.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Retour -->
+ <section id="view-retour" class="view">
+    <div class="wrap">
+      <div class="panel">
+        <h3>Retour</h3>
+
+        <div style="display:flex; gap:10px; margin-bottom:12px;">
+          <input id="retourBonInput" class="pill" placeholder="Voer bonnummer in (bijv. GL-20251028-002)">
+          <button class="btn btn-primary" onclick="searchReturnReceipt()">Zoek bon</button>
+        </div>
+
+        <div id="retourResult">
+          <div class="muted">Voer een bonnummer in om te beginnen.</div>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top:16px;">
+        <h4>Recente retouren</h4>
+        <table class="bon-table">
+          <thead>
+            <tr>
+              <th>Retournummer</th>
+              <th>Datum</th>
+              <th class="amount">Bedrag</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="recentReturns">
+            <tr>
+              <td colspan="4" class="muted">Laden…</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Bonnen -->
+  <section id="view-bonnen" class="view">
+    <div class="wrap">
+      <div class="panel">
+        <div class="bonnen-toolbar">
+          <input id="bonSearch" class="bonnen-search" placeholder="Zoek op bonnummer of e-mail...">
+          <button class="btn" onclick="loadReceipts()">Zoek</button>
+        </div>
+        <table class="bon-table">
+          <thead>
+            <tr>
+              <th>Bon</th>
+              <th>Datum</th>
+              <th>Betaalwijze</th>
+              <th class="right">Totaal</th>
+              <th>E-mail</th>
+              <th>Acties</th>
+            </tr>
+          </thead>
+          <tbody id="bonList">
+            <tr><td colspan="6" class="muted">Laden…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+<!-- Huren -->
+  <section id="view-huur" class="view">
+    <div class="wrap">
+      <div class="panel">
+        <h3>Huren</h3>
+
+        <div class="scanbar" style="margin-bottom:12px;">
+          <input id="huurScan" class="pill" placeholder="Scan huur SKU" />
+          <button class="btn btn-primary" onclick="addHuurScan()">Toevoegen</button>
+        </div>
+
+        <table id="huurTbl">
+          <thead>
+            <tr>
+              <th>SKU</th>
+              <th>Omschrijving</th>
+              <th class="right">Verkoopprijs</th>
+              <th class="right">Huur</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+
+        <div style="margin-top:16px; display:flex; gap:12px; flex-wrap:wrap;">
+          <input id="huurEindDatum" type="date" class="pill" />
+          <input id="huurKlant" class="pill" placeholder="Klant (optioneel)" />
+          <select id="huurBetaalwijze" class="pill" required>
+            <option value="" disabled selected>Betaalwijze</option>
+            <option>PIN</option>
+            <option>Contant</option>
+            <option>Tikkie</option>
+            <option>Overig</option>
+          </select>
+          <div id="huurTotaalBox"
+            style="margin-left:auto; text-align:right; font-size:14px;">
+            <div>Huur: € <span id="huurTotaal">0.00</span></div>
+            <div>Borg: € <span id="huurBorgTotaal">0.00</span></div>
+            <div style="margin-top:4px; font-size:20px; font-weight:600;">
+              Totaal: € <span id="huurEindTotaal">0.00</span>
+            </div>
+          </div>
+          <button class="btn" onclick="printHuurBon()">Huurbon</button>
+          <button id="startHuurBtn" class="btn btn-primary" onclick="startHuur()">Start huur</button>
+        </div>
+      </div>
+      <div class="panel" style="margin-top:16px;">
+        <h3>Actieve huren</h3>
+        <table id="actieveHurenTbl">
+          <thead>
+            <tr>
+              <th>HuurNr</th>
+              <th>Artikelen</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <div id="view-voorraad" class="view">
+    <div class="panel">
+      <h2 style="margin:0 0 12px 0;">Voorraad</h2>
+
+      <div style="display:flex; gap:8px; margin-bottom:12px;">
+        <button class="subtab-btn active" data-subview="inschrijven" onclick="voorraadShowSub('inschrijven')">Inschrijven</button>
+        <button class="subtab-btn" data-subview="tellen" onclick="voorraadShowSub('tellen')">Tellen</button>
+      </div>
+
+      <div id="voorraad-sub-inschrijven">
+        <div class="grid" style="gap:10px;">
+          <div>
+            <label>Categorie</label>
+            <select id="vTab"></select>
+          </div>
+
+          <div>
+            <label>Omschrijving *</label>
+            <input id="vDesc" type="text" placeholder="Bijv. Titleist driver..." />
+          </div>
+
+          <div style="display:flex; gap:10px;">
+            <div style="flex:1;">
+              <label>Aankoopprijs *</label>
+              <input id="vBuy" type="number" step="0.01" placeholder="0.00" />
+            </div>
+            <div style="flex:1;">
+              <label>Verwachte verkoop *</label>
+              <input id="vExpected" type="number" step="0.01" placeholder="0.00" />
+            </div>
+          </div>
+
+          <div style="display:flex; gap:10px;">
+            <div style="flex:1;">
+              <label>Partij (optioneel)</label>
+              <input id="vParty" type="text" placeholder="Bijv. P-2026-01" />
+            </div>
+            <div style="flex:1;">
+              <label>Kanaal (optioneel)</label>
+              <input id="vChannel" type="text" placeholder="Bijv. winkel / mp / web" />
+            </div>
+          </div>
+
+          <button class="btn primary" onclick="voorraadCreateItem()">Toevoegen</button>
+
+          <div id="vCreateMsg" class="muted"></div>
+
+          <hr style="opacity:.2" />
+
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <strong>Meest recent toegevoegd</strong>
+            <button class="btn" onclick="voorraadLoadRecent()">Ververs</button>
+          </div>
+
+          <div class="table-wrap">
+            <table class="table" id="vRecentTable">
+              <thead>
+                <tr>
+                  <th>SKU</th><th>Tab</th><th>Datum</th><th>Omschrijving</th>
+                  <th class="right">Inkoop</th><th class="right">Verwacht</th><th>Partij</th><th>Kanaal</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+
+      <div id="voorraad-sub-tellen" style="display:none;">
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+          <button class="btn primary" onclick="tellenStart()">Start telling</button>
+          <button class="btn" onclick="tellenFinish(false)">Telling afronden</button>
+          <button class="btn danger" onclick="tellenFinish(true)">Doorgaan (force)</button>
+          <div id="tellenMeta" class="muted"></div>
+        </div>
+
+        <div style="margin-top:10px;">
+          <label>Scan/typ SKU</label>
+          <input id="tellenSku" type="text" placeholder="Scan of typ SKU en druk Enter" onkeydown="if(event.key==='Enter'){tellenScan();}" />
+          <button class="btn" onclick="tellenScan()">Toevoegen</button>
+        </div>
+
+        <div style="margin-top:10px;" class="table-wrap">
+          <table class="table" id="tellenTable">
+            <thead>
+              <tr>
+                <th>SKU</th><th>Tab</th><th>Omschrijving</th><th>Status</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+        <div id="tellenMsg" class="muted" style="margin-top:8px;"></div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Sessie -->
+  <section id="view-sessie" class="view">
+    <div class="wrap">
+
+      <div class="sessie-grid">
+
+        <!-- Header -->
+        <div class="sessie-card col-12" id="sessieHeader">
+          <div class="skeleton skel-line" style="width:220px"></div>
+          <div class="skeleton skel-line" style="width:160px; margin-top:6px"></div>
+        </div>
+
+        <!-- Vandaag -->
+        <div class="sessie-card col-4">
+          <h4>Vandaag</h4>
+          <div id="sessieToday">
+            <div class="skeleton skel-big"></div>
+            <div class="skeleton skel-line"></div>
+            <div class="skeleton skel-line"></div>
+            <div class="skeleton skel-line"></div>
+          </div>
+        </div>
+
+        <!-- Kas -->
+        <div class="sessie-card col-4">
+          <h4>Kas</h4>
+          <div id="sessieCash">
+            <div class="skeleton skel-big"></div>
+            <div class="skeleton skel-line"></div>
+            <div class="skeleton skel-line"></div>
+            <div class="skeleton skel-line"></div>
+          </div>
+        </div>
+
+        <!-- Omzet -->
+        <div class="sessie-card col-4">
+          <h4>Omzet</h4>
+          <div id="sessieTotals">
+            <div class="skeleton skel-big"></div>
+            <div class="skeleton skel-line"></div>
+            <div class="skeleton skel-line"></div>
+            <div class="skeleton skel-line"></div>
+          </div>
+        </div>
+
+        <!-- KPI + Donut layout -->
+        <div class="sessie-card col-12">
+          <div class="sessie-kpi-grid">
+
+            <!-- Donut chart -->
+            <div class="sessie-donut">
+              <h4 id="donutTitle">Transacties</h4>
+
+              <!-- Donut skeleton -->
+              <div id="donutSkeleton" class="skeleton skel-chart"></div>
+
+              <!-- Echte donut -->
+              <canvas id="paymentDonutChart" height="220" style="display:none"></canvas>
+            </div>
+
+            <!-- KPI row 1 -->
+            <div class="sessie-kpi">
+              <div class="muted">Maand omzet</div>
+              <div class="skeleton skel-kpi"></div>
+              <div id="kpiMonthRevenue" class="total-big" style="display:none">€ 0,00</div>
+            </div>
+
+            <div class="sessie-kpi">
+              <div class="muted">Kwartaal omzet (huidig jaar)</div>
+              <div class="skeleton skel-kpi"></div>
+              <div id="kpiQuarterRevenueCurrent" class="total-big" style="display:none">€ 0,00</div>
+            </div>
+
+            <div class="sessie-kpi">
+              <div class="muted">YTD omzet (huidig jaar)</div>
+              <div class="skeleton skel-kpi"></div>
+              <div id="kpiYtdRevenueCurrent" class="total-big" style="display:none">€ 0,00</div>
+            </div>
+
+            <!-- KPI row 2 -->
+            <div class="sessie-kpi">
+              <div class="muted">Bruto maand winst</div>
+              <div class="skeleton skel-kpi"></div>
+              <div id="kpiMonthProfit" class="total-big" style="display:none">€ 0,00</div>
+            </div>
+
+            <div class="sessie-kpi">
+              <div class="muted">Kwartaal omzet (vorig jaar)</div>
+              <div class="skeleton skel-kpi"></div>
+              <div id="kpiQuarterRevenuePrev" class="total-big" style="display:none">€ 0,00</div>
+            </div>
+
+            <div class="sessie-kpi">
+              <div class="muted">YTD omzet (vorig jaar)</div>
+              <div class="skeleton skel-kpi"></div>
+              <div id="kpiYtdRevenuePrev" class="total-big" style="display:none">€ 0,00</div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Maandomzet grafiek -->
+        <div class="sessie-card col-12">
+          <h4>Maandomzet per dag</h4>
+
+          <div style="display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap; margin-top:12px;">
+            <div>
+              <label class="muted" style="display:block; margin-bottom:6px;">Maand</label>
+              <select id="sessieMonthSelect" onchange="onSessionMonthChange()"></select>
+            </div>
+          </div>
+
+          <!-- Chart skeleton -->
+          <div id="monthChartSkeleton" class="skeleton skel-chart" style="margin-top:12px"></div>
+
+          <!-- Echte chart -->
+          <canvas id="monthChart" height="90" style="display:none"></canvas>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+
+
+
+  <!-- Helpers -->
+  <div id="spinner"><div>Bezig…</div></div>
+  <div id="toast"></div>
+  
+
+  <script>
+    // Kleinere global error-log (niet blokkeren)
+    (function(){
+      window.addEventListener('error', function(e){
+        console.log('GLOBAL ERROR', {
+          message:e.message,
+          file:e.filename,
+          line:e.lineno,
+          col:e.colno
+        });
+      });
+    })();
+
+    // Branding (client) t.b.v. 80mm herprint
+    const BRAND = {
+      name: 'Golf Locker',
+      line1: 'Dorpstraat 38',
+      line2: '3981 EB, Bunnik',
+      phone: '06-00000000',
+      email: 'info@golflocker.nl',
+      vat: 'NL861782495B01',
+      kvk: '80742300',
+      extra: 'Marge-regeling — btw inbegrepen',
+      logoUrl: 'https://shop.golf-locker.nl/wp-content/uploads/2024/04/Golf-Locker-Logo-1-scaled.png',
+      webshopUrl: 'https://shop.golf-locker.nl'
+    };
+
+    // ===== KASSA LOGICA =====
+    window.onerror = function(msg){
+      showSpinner(false);
+      alert('JS-fout: ' + msg);
+    };
+
+    const scan         = document.getElementById('scan');
+    const tb           = document.querySelector('#cartTbl tbody');
+    const totalEl      = document.getElementById('total');
+    const totalBigEl   = document.getElementById('totalBig');
+    const itemCountEl  = document.getElementById('itemCount');
+    const spinner      = document.getElementById('spinner');
+    const toast        = document.getElementById('toast');
+
+    let hasActiveDiscountOrGiftcard = false;
+    let activeDiscount = null;
+    let activeGiftcard = null;
+
+
+    const state = new Map();
+
+    function hasActiveCart(){
+      return state.size > 0;
+    }
+
+    function syncCartToBackend(cb){
+      const cart = Array.from(state.values());
+
+      google.script.run
+        .withSuccessHandler(()=>cb && cb())
+        .withFailureHandler(err=>{
+          alert(err.message || err);
+        })
+        .apiSetCart(cart);
+    }
+
+    function euro(n){
+      return new Intl.NumberFormat('nl-NL',{
+        style:'currency',
+        currency:'EUR'
+      }).format(n || 0);
+    }
+    function showSpinner(on){
+      if (!spinner) return;
+      spinner.style.display = on ? 'flex' : 'none';
+    }
+    function debounce(fn, ms){
+      let t;
+      return (...a)=>{
+        clearTimeout(t);
+        t = setTimeout(()=>fn(...a), ms);
+      };
+    }
+    function showToast(msg){
+      if (!toast) return;
+      toast.textContent = msg;
+      toast.style.display = 'block';
+      setTimeout(()=>{ toast.style.display='none'; },1500);
+    }
+
+    function updateTotals(total){
+      if (totalEl) totalEl.textContent     = euro(total);
+      if (totalBigEl) totalBigEl.textContent = euro(total);
+      const count = [...state.values()].reduce((s,i)=> s + (Number(i.qty)||1), 0);
+      if (itemCountEl) {
+        itemCountEl.textContent = `${count} artikel${count!==1?'en':''}`;
+      }
+    }
+    function updateTotalLocal(){
+      let subtotal = 0;
+
+      state.forEach(it => {
+        subtotal += (Number(it.price) || 0) * (Number(it.qty) || 1);
+      });
+
+      let total = subtotal;
+
+      // 🔻 korting
+      if (activeDiscount) {
+        if (activeDiscount.waarde_type === 'PERCENT') {
+          total = subtotal * (1 - activeDiscount.waarde / 100);
+        }
+        if (activeDiscount.waarde_type === 'FIXED') {
+          total = Math.max(0, subtotal - activeDiscount.waarde);
+        }
+      }
+
+      // 🎁 giftcard
+      if (activeGiftcard) {
+        total = Math.max(0, subtotal - activeGiftcard.applied);
+      }
+
+      document.getElementById('totalBig').textContent = euro(total);
+      document.getElementById('total').textContent = euro(total);
+    }
+
+    function runWithTimeout(callFn, msg){
+      msg = msg || 'Server reageert niet (timeout).';
+      showSpinner(true);
+      let done = false;
+      const killer = setTimeout(()=>{
+        if (!done){
+          showSpinner(false);
+          alert(msg);
+        }
+      },10000);
+      callFn(
+        ()=>{ done=true; clearTimeout(killer); showSpinner(false); },
+        (err)=>{
+          done=true; 
+          clearTimeout(killer); 
+          showSpinner(false);
+
+          const msg = String(err?.message || err || '');
+
+          if (msg.toLowerCase().includes('mandje is leeg')) {
+            console.warn('[CART] Backend cart verlopen → UI reset');
+
+            tb.innerHTML = '';
+            state.clear();
+            updateTotalLocal();
+            scan.focus();
+
+            alert('De verkoop was verlopen. Er is een nieuwe verkoop gestart.');
+            return;
+          }
+
+          alert(msg);
+        }
+      );
+    }
+
+    function ensureRow(it){
+      let tr = tb.querySelector(`tr[data-sku="${it.sku}"]`);
+      if (!tr){
+        tr = document.createElement('tr');
+        tr.setAttribute('data-sku', it.sku);
+        tr.innerHTML = `
+          <td data-label="SKU">${it.sku}</td>
+          <td data-label="Omschrijving" class="desc"></td>
+          <td data-label="Prijs" class="right">
+            <input type="number" class="price-input" inputmode="decimal" value="${it.price||0}">
+          </td>
+          <td data-label="Aantal" class="center">
+            <input type="number" min="1" value="${it.qty||1}">
+          </td>
+          <td data-label="Subtotaal" class="right subtot">€ 0,00</td>
+          <td><button class="btn btn-danger">✕</button></td>
+        `;
+
+        const priceInput = tr.querySelector('.price-input');
+        const qtyInput   = tr.querySelector('input[min]');
+        const rmBtn      = tr.querySelector('.btn-danger');
+
+        priceInput.addEventListener('input', debounce(e=>{
+          priceInput._editing = true;
+          const raw = e.target.value;
+
+          // ⬇️ sta tussen-invoer toe
+          if (
+            raw === '' ||
+            raw === ',' ||
+            raw === '.' ||
+            raw.endsWith(',')
+          ) {
+            return;
+          }
+
+          // normaliseren PAS bij commit
+          const normalized = raw.replace(',', '.');
+          const num = Number(normalized);
+          if (isNaN(num)) return;
+
+          const it2 = state.get(it.sku);
+          if (!it2) return;
+
+          it2.price = num;
+          updateRow(it.sku);
+
+          // ✅ frontend-only totals (backend cart bestaat niet meer)
+          updateTotalLocal();
+
+        },250));
+
+        priceInput.addEventListener('blur', e=>{
+          priceInput._editing = false;
+          const raw = e.target.value.replace(',', '.');
+          const n = Number(raw);
+          if (!isNaN(n)) {
+            e.target.value = n.toFixed(2).replace('.', ',');
+          }
+
+          // force 1 laatste render
+          updateRow(it.sku);
+        });
+
+        qtyInput.addEventListener('input', debounce(e=>{
+          const v = e.target.value;
+          const it2 = state.get(it.sku);
+          if (!it2) return;
+          it2.qty = Math.max(1, Number(v)||1);
+          updateRow(it.sku);
+          google.script.run
+            .withSuccessHandler(({total,line})=>{
+              updateTotals(total);
+              if (line){
+                state.set(line.sku, line);
+                updateRow(line.sku);
+              }
+            })
+            .withFailureHandler(err=>{
+              const msg = String(err?.message || err || '');
+
+              if (msg.toLowerCase().includes('mandje is leeg')) {
+                tb.innerHTML = '';
+                state.clear();
+                updateTotalLocal();
+                alert('Verkoop verlopen. Start opnieuw.');
+                scan.focus();
+                return;
+              }
+
+              alert(msg);
+            })
+            .apiSetQtyFast(it.sku, v);
+        },250));
+
+        rmBtn.addEventListener('click', ()=>{
+          tb.removeChild(tr);
+          state.delete(it.sku);
+          updateTotalLocal();
+          google.script.run
+            .withFailureHandler(err=>alert(err.message||err))
+            .apiRemoveFast(it.sku);
+        });
+
+        tb.appendChild(tr);
+      }
+      state.set(it.sku, it);
+      updateRow(it.sku);
+    }
+
+    function updateRow(sku){
+      const it = state.get(sku);
+      const tr = tb.querySelector(`tr[data-sku="${sku}"]`);
+      if (!tr || !it) return;
+
+      // Omschrijving altijd veilig bijwerken
+      tr.querySelector('.desc').textContent = it.desc || '';
+
+      // Prijs ALLEEN bijwerken als je er NIET in typt
+      const priceEl = tr.querySelector('.price-input');
+      if (priceEl && !priceEl._editing) {
+        priceEl.value = it.price || 0;
+      }
+
+      // Aantal mag altijd
+      tr.querySelector('input[min]').value = it.qty || 1;
+
+      // Subtotaal
+      tr.querySelector('.subtot').textContent =
+        euro((it.price||0) * (it.qty||1));
+
+      updateTotalLocal();
+    }
+
+    function addScan(){
+      const sku = (scan.value || '').trim();
+      if (!sku) return;
+
+      google.script.run
+        .withSuccessHandler(({line, total}) => {
+          // ✅ normaal gedrag
+          ensureRow(line);
+          updateTotalLocal();
+        })
+        .withFailureHandler(err => {
+          const msg = String(err?.message || err || '');
+
+          // 🔥 Artikel al verkocht
+          if (msg.includes('ALREADY_SOLD|')) {
+            const clean = msg.replace('Error:', '').trim();
+            const parts = clean.split('|');
+            const receipt = parts[1] || '';
+            const receiptUrl = parts[2] || '';
+
+            showAlreadySoldPopup({
+              sku,
+              receipt,
+              receiptUrl,
+            });
+
+            // ❌ niets toevoegen aan de cart
+            scan.value = '';
+            scan.focus();
+            return;
+          }
+
+          // ❌ overige fouten (fallback)
+          alert(msg);
+
+          // oude rollback-logica (laten staan voor veiligheid)
+          if (state.has(sku)){
+            const it = state.get(sku);
+            it.qty = Math.max(1, it.qty - 1);
+            ensureRow(it);
+          }
+        })
+        .apiAddFast(sku);
+
+      scan.value = '';
+      scan.focus();
+    }
+
+    function openReceipt(receiptNo){
+      if (!receiptNo) return;
+
+      // 👉 PAS AAN als jouw bon-URL anders is
+      const url = `/ticket?receipt=${encodeURIComponent(receiptNo)}`;
+      window.open(url, '_blank');
+    }
+
+    function showAlreadySoldPopup({ sku, receipt, receiptUrl }) {
+      const html = `
+        <div class="channel-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9999;display:flex;align-items:center;justify-content:center;">
+          <div style="background:#fff;width:90%;max-width:420px;border-radius:12px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.2);">
+
+            <h3 style="margin:0 0 10px 0;color:#b91c1c;">
+              Artikel al verkocht
+            </h3>
+
+            <p style="margin:0 0 8px 0;">
+              SKU <strong>${escapeHtml(sku)}</strong> is al verkocht.
+            </p>
+
+            <div style="text-align:right;margin-top:20px;">
+              ${receipt ? `
+                <button class="btn btn-ghost"
+                  onclick="window.open('${escapeHtml(receiptUrl)}','_blank')">
+                  Open bon
+                </button>
+              ` : ''}
+
+              <button class="btn btn-danger"
+                onclick="this.closest('.channel-overlay').remove()">
+                Sluiten
+              </button>
+            </div>
+
+          </div>
+        </div>
+      `;
+
+      document.body.insertAdjacentHTML('beforeend', html);
+    }
+
+    function newCart(){
+      runWithTimeout((ok, fail) => {
+        google.script.run
+          .withSuccessHandler(() => {
+
+            // 🔥 UI & cart reset
+            tb.innerHTML = '';
+            state.clear();
+
+            // 🔥 FRONTEND discount / giftcard reset (DIT ONTBRAK)
+            activeDiscount = null;
+            activeGiftcard = null;
+            hasActiveDiscountOrGiftcard = false;
+
+            // 🔥 totals opnieuw berekenen zonder korting
+            updateTotalLocal();
+
+            // 🔥 overige UI reset
+            const em = document.getElementById('custEmail');
+            if (em) em.value = '';
+
+            const paySel = document.getElementById('pay');
+            if (paySel) paySel.value = '';
+
+            clearCodeBoxUi();
+            refreshActiveCodeStatus();
+
+            // 🔥 backend state ook opschonen (veilig, maar niet leidend)
+            google.script.run.apiClearDiscount();
+            google.script.run.apiClearGiftcard();
+
+            ok();
+            scan.focus();
+          })
+          .withFailureHandler(fail)
+          .apiClearCart();
+
+      }, 'Kon nieuwe verkoop niet starten.');
+    }
+
+
+    function book(){
+      const btns = document.querySelectorAll('button');
+      btns.forEach(b => b.disabled = true);
+      showSpinner(true);
+
+      const pay   = document.getElementById('pay').value;
+      const email = (document.getElementById('custEmail').value || '').trim();
+
+      if (!pay) {
+        alert('Selecteer eerst een betaalwijze!');
+        showSpinner(false);
+        btns.forEach(b => b.disabled = false);
+        return;
+      }
+
+      // Venster voor 80mm ticket
+      const ticketWin = window.open('', '_blank');
+
+      // 1️⃣ Eerst frontend → backend sync
+      syncCartToBackend(() => {
+
+        const runner = google.script.run
+          .withSuccessHandler(({ pdfUrl, total, receiptNo, ticketUrl, subtotal, discountAmount, itemsSold }) => {
+
+            if (ticketUrl) {
+              if (ticketWin && !ticketWin.closed) {
+                ticketWin.location.href = ticketUrl;
+              } else {
+                window.open(ticketUrl, '_blank');
+              }
+            } else if (ticketWin && !ticketWin.closed) {
+              ticketWin.close();
+            }
+
+            const em = document.getElementById('custEmail');
+            if (em) em.value = '';
+
+            newCart();
+
+            google.script.run.apiClearDiscount();
+            google.script.run.apiClearGiftcard();
+            hasActiveDiscountOrGiftcard = false;
+
+            refreshActiveCodeStatus();
+            clearCodeBoxUi();
+            hasActiveDiscountOrGiftcard = false;
+
+            const paySel = document.getElementById('pay');
+            if (paySel) paySel.value = '';
+
+            showSpinner(false);
+            btns.forEach(b => b.disabled = false);
+
+            if (Array.isArray(itemsSold) && itemsSold.some(it => it.channel)) {
+              showChannelOverview({
+                items: itemsSold,
+                receiptNo,
+                total
+              });
+            }
+          })
+          .withFailureHandler(err => {
+            showSpinner(false);
+            btns.forEach(b => b.disabled = false);
+
+            if (ticketWin && !ticketWin.closed) ticketWin.close();
+            alert(err && err.message ? err.message : String(err));
+          });
+
+        // 🚀 SLECHTS ÉÉN KEUZE, GEEN EXTRA CALLS
+        if (hasActiveDiscountOrGiftcard) {
+          const cartArr = Array.from(state.values());
+
+          runner.apiBookWithDiscountNet({
+            payMethod: pay,
+            email: email,
+            cart: cartArr
+          });
+
+        } else {
+          runner.apiBookAndReceipt(pay, email);
+        }
+      });
+    }
+
+    window.addEventListener('message', function(e){
+      if (e.data && e.data.type === 'pos-print-ready') {
+        try { 
+          window.focus();
+          window.print();
+        } catch(err) {
+          console.error("Auto print failed:", err);
+        }
+      }
+    });
+
+    function refreshNow(){
+      const btns = document.querySelectorAll('button');
+      btns.forEach(b => b.disabled = true);
+      showSpinner(true);
+      if (state.size > 0) {
+        console.log('[REFRESH] overgeslagen: actieve verkoop');
+        return;
+      }
+      google.script.run
+        .withSuccessHandler(({cart,total,changed})=>{
+          tb.innerHTML = '';
+          state.clear();
+          (cart || []).forEach(it => ensureRow(it));
+          updateTotals(total);
+          showSpinner(false);
+          btns.forEach(b => b.disabled = false);
+          showToast(changed ? `Bijgewerkt (${changed})` : 'Up-to-date');
+        })
+        .withFailureHandler(err=>{
+          showSpinner(false);
+          btns.forEach(b => b.disabled = false);
+          alert(err.message||err)
+        })
+        .apiRefreshFromSheet();
+
+      google.script.run.apiWarmIndex();
+    }
+
+    function load(){
+      checkSessionOnLoad();
+      refreshActiveCodeStatus();
+
+      runWithTimeout((ok,fail)=>{
+        google.script.run
+          .withSuccessHandler(cart=>{
+            tb.innerHTML = '';
+            state.clear();
+            (cart || []).forEach(it => ensureRow(it));
+            updateTotalLocal();
+            google.script.run.apiWarmIndex();
+            ok();
+            scan.focus();
+            google.script.run.apiWarmIndex();
+            setInterval(() => { 
+              if (!hasActiveCart()) {
+                refreshNow();
+              }
+            }, 60000);
+          })
+          .withFailureHandler(fail)
+          .apiGetCart();
+      }, 'Kon de kassa niet initialiseren.');
+    }
+
+
+  function showChannelOverview(data) {
+    const { items, receiptNo, total } = data;
+    // alleen items met kanaal
+    const rows = items
+      .filter(it => it.channel)
+      .map(it => `
+        <tr>
+          <td>${escapeHtml(it.sku)}</td>
+          <td>${escapeHtml(it.desc)}</td>
+          <td>${escapeHtml(it.channel)}</td>
+        </tr>
+      `)
+      .join('');
+
+    if (!rows) return; // niets te tonen
+
+    const totalFormatted = '€ ' + Number(total || 0)
+      .toFixed(2)
+      .replace('.', ',');
+
+    const html = `
+      <div class="channel-overlay" style="
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.4);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      ">
+        <div style="
+          background: #fff;
+          width: 90%;
+          max-width: 600px;
+          border-radius: 12px;
+          padding: 20px;
+          box-shadow: 0 10px 30px rgba(0,0,0,.2);
+        ">
+          <h4 style="margin:0 0 4px 0;">
+            Bon: ${escapeHtml(receiptNo || '')}
+          </h4>
+
+          <h4 style="margin:0 0 12px 0;">
+            Totaal: ${totalFormatted}
+          </h4>
+
+          <h3 style="margin: 0 0 8px 0;">
+            Let op: verkochte artikelen op extern kanaal
+          </h3>
+
+          <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+              <tr style="border-bottom: 1px solid #e5e7eb;">
+                <th style="text-align: left; padding: 6px;">SKU</th>
+                <th style="text-align: left; padding: 6px;">Omschrijving</th>
+                <th style="text-align: left; padding: 6px;">Kanaal</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows}
+            </tbody>
+          </table>
+
+          <div style="text-align: right; margin-top: 16px;">
+            <button
+              class="btn btn-ghost"
+              onclick="window.open('https://shop.golf-locker.nl/wp-admin/edit.php?post_type=product', '_blank')">
+              Open website
+            </button>
+
+            <button
+              class="btn btn-ghost"
+              onclick="window.open('https://www.marktplaats.nl/my-account/sell/index.html', '_blank')">
+              Open Marktplaats
+            </button>
+
+            <button
+              class="btn btn-danger"
+              onclick="this.closest('.channel-overlay').remove()">
+              Sluiten
+            </button>
+          </div>
+
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', html);
+  }
+
+  function voorraadInitTabs(){
+    const sel = document.getElementById('vTab');
+    if (!sel) return;
+
+    // TABS komt niet client-side, dus hard vullen vanuit bekende tabs (zelfde als pos.gs)
+    const tabs = ['Clubs','Sets','Tassen',"Trolley's",'Overig','Diensten'];
+
+    sel.innerHTML = tabs.map(t => `<option value="${t}">${t}</option>`).join('');
+  }
+
+  function voorraadCreateItem(){
+    const tab = document.getElementById('vTab').value;
+    const desc = document.getElementById('vDesc').value.trim();
+    const buy = document.getElementById('vBuy').value;
+    const expected = document.getElementById('vExpected').value;
+    const party = document.getElementById('vParty').value.trim();
+    const channel = document.getElementById('vChannel').value.trim();
+
+    const msg = document.getElementById('vCreateMsg');
+    msg.textContent = 'Bezig...';
+
+    google.script.run
+      .withSuccessHandler(res => {
+        if (!res || res.ok !== true) {
+          msg.textContent = (res && res.message) ? res.message : 'Onbekende fout';
+          return;
+        }
+        msg.textContent = `Toegevoegd: SKU ${res.item.sku} (${res.item.purchaseDate})`;
+        // reset velden behalve tab
+        document.getElementById('vDesc').value = '';
+        document.getElementById('vBuy').value = '';
+        document.getElementById('vExpected').value = '';
+        document.getElementById('vParty').value = '';
+        document.getElementById('vChannel').value = '';
+        voorraadLoadRecent();
+      })
+      .withFailureHandler(err => {
+        msg.textContent = err && err.message ? err.message : err;
+      })
+      .apiVoorraadCreateItem({ tab, desc, buy, expected, party, channel });
+  }
+
+  function euroView(v){
+    if (v === '' || v === null || v === undefined) return '';
+    const n = Number(v);
+    if (isNaN(n)) return '';
+    return '€ ' + n.toFixed(2).replace('.', ',');
+  }
+
+  function voorraadLoadRecent(){
+    const msg = document.getElementById('vCreateMsg');
+
+    const table = document.getElementById('vRecentTable');
+    if (!table) {
+      if (msg) msg.textContent = 'DEBUG: vRecentTable niet gevonden (check id="vRecentTable").';
+      return;
+    }
+
+    const tb = table.querySelector('tbody');
+    if (!tb) {
+      if (msg) msg.textContent = 'DEBUG: vRecentTable tbody niet gevonden.';
+      return;
+    }
+
+    tb.innerHTML = `<tr><td colspan="8" class="muted">Laden…</td></tr>`;
+
+    google.script.run
+      .withSuccessHandler(res => {
+        console.log('apiVoorraadListRecent →', res);
+
+        // ✅ Accepteer beide vormen: array OF {ok:true, items:[...]}
+        const items = Array.isArray(res) ? res : (res && Array.isArray(res.items) ? res.items : []);
+
+        if (!items.length){
+          tb.innerHTML = `<tr><td colspan="8" class="muted">Geen items gevonden.</td></tr>`;
+          return;
+        }
+
+        tb.innerHTML = items.map(it => {
+          // aankoopdatum kan string of Date zijn
+          let d = it.purchaseDate || '';
+          if (d instanceof Date) d = d.toLocaleDateString('nl-NL');
+
+          return `
+            <tr>
+              <td>${it.sku || ''}</td>
+              <td>${it.tab || ''}</td>
+              <td>${d || ''}</td>
+              <td>${(it.desc || '').toString()}</td>
+              <td class="right">${euroView(it.buy)}</td>
+              <td class="right">${euroView(it.expected)}</td>
+              <td>${it.party || ''}</td>
+              <td>${it.channel || ''}</td>
+            </tr>
+          `;
+        }).join('');
+      })
+      .withFailureHandler(err => {
+        const m = (err && err.message) ? err.message : String(err);
+        console.error('apiVoorraadListRecent FAILED:', err);
+        tb.innerHTML = `<tr><td colspan="8" class="muted">Fout bij laden: ${m}</td></tr>`;
+        if (msg) msg.textContent = 'Recent laden mislukt: ' + m;
+      })
+      .apiVoorraadListRecent(20);
+  }
+
+  /** ===== TELLEN ===== */
+
+  function voorraadShowSub(key){
+    const a = document.getElementById('voorraad-sub-inschrijven');
+    const b = document.getElementById('voorraad-sub-tellen');
+    if (!a || !b) return;
+
+    a.style.display = (key === 'inschrijven') ? 'block' : 'none';
+    b.style.display = (key === 'tellen') ? 'block' : 'none';
+
+    // knop styling (optioneel simpel)
+    document.querySelectorAll('#view-voorraad .subtab-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.subview === key);
+    });
+  }
+
+  const tellenState = []; // client-only lijst om te tonen
+
+  function tellenRender(){
+    const tb = document.querySelector('#tellenTable tbody');
+    if (!tb) return;
+    if (!tellenState.length){
+      tb.innerHTML = `<tr><td colspan="4" class="muted">Nog niets gescand.</td></tr>`;
+      return;
+    }
+    tb.innerHTML = tellenState.map(x => `
+      <tr>
+        <td>${x.sku}</td>
+        <td>${x.tab || ''}</td>
+        <td>${x.desc || ''}</td>
+        <td>${x.status || ''}</td>
+      </tr>
+    `).join('');
+  }
+
+  function tellenStart(){
+    const meta = document.getElementById('tellenMeta');
+    const msg = document.getElementById('tellenMsg');
+    meta.textContent = 'Bezig...';
+    msg.textContent = '';
+    tellenState.length = 0;
+    tellenRender();
+
+    google.script.run
+      .withSuccessHandler(res => {
+        meta.textContent = res && res.tellingId ? `Actief: ${res.tellingId} (expected: ${res.expectedCount})` : 'Gestart';
+      })
+      .withFailureHandler(err => {
+        meta.textContent = (err && err.message) ? err.message : err;
+      })
+      .apiVoorraadTellingStart();
+  }
+
+  function tellenScan(){
+    const inp = document.getElementById('tellenSku');
+    const sku = (inp.value || '').trim();
+    if (!sku) return;
+
+    inp.value = '';
+    inp.focus();
+
+    google.script.run
+      .withSuccessHandler(res => {
+        tellenState.unshift({
+          sku: res.sku || sku,
+          tab: res.tab || '',
+          desc: res.desc || '',
+          status: res.status || ''
+        });
+        tellenRender();
+      })
+      .withFailureHandler(err => {
+        tellenState.unshift({ sku, status: (err && err.message) ? err.message : String(err) });
+        tellenRender();
+      })
+      .apiVoorraadTellingScan(sku);
+  }
+
+  function tellenFinish(force){
+    const msg = document.getElementById('tellenMsg');
+    msg.textContent = 'Bezig...';
+
+    google.script.run
+      .withSuccessHandler(res => {
+        if (res && res.ok === false){
+          msg.textContent = res.message || `Er missen nog items (${res.missingCount}).`;
+          return;
+        }
+        msg.textContent = `Afgerond. Found: ${res.foundCount} | Missing: ${res.missingCount} | Sold scans: ${res.soldScans} | Unknown: ${res.unknownScans}`;
+      })
+      .withFailureHandler(err => {
+        msg.textContent = (err && err.message) ? err.message : err;
+      })
+      .apiVoorraadTellingFinish({ force: !!force });
+  }
+
+  // Run init 1x
+  (function(){
+    voorraadInitTabs();
+    voorraadLoadRecent();
+    tellenRender();
+  })();
+
+
+  // ===== SESSIE FRONTEND =====
+  function euro(v){
+    return '€ ' + Number(v || 0).toLocaleString('nl-NL', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  }
+
+  function checkSessionOnLoad(){
+    google.script.run
+      .withSuccessHandler(res => {
+        if (!res || !res.exists) {
+          openStartSessionModal();
+        }
+      })
+      .getTodaySession();
+  }
+
+  function openStartSessionModal(){
+    const m = document.getElementById('startSessionModal');
+    const i = document.getElementById('startCashInput');
+    m.style.display = 'block';
+    setTimeout(() => i.focus(), 50);
+  }
+
+  function openEndSessionModal(){
+    const m = document.getElementById('endSessionModal');
+    const i = document.getElementById('endCashInput');
+    m.style.display = 'block';
+    setTimeout(() => i.focus(), 50);
+  }
+
+  function confirmStartSession(withValue){
+    const val = document.getElementById('startCashInput').value;
+    document.getElementById('startSessionModal').style.display = 'none';
+
+    google.script.run
+      .withSuccessHandler(() => showToast('Sessie gestart'))
+      .openSession(withValue ? val : null);
+  }
+
+  // ===== SESSIE AUTO REFRESH =====
+  let sessieAutoRefreshTimer = null;
+
+  function startSessieAutoRefresh(){
+    stopSessieAutoRefresh();
+    sessieAutoRefreshTimer = setInterval(() => {
+      loadSessionDashboard();
+    }, 60000);
+  }
+
+  function stopSessieAutoRefresh(){
+    if (sessieAutoRefreshTimer){
+      clearInterval(sessieAutoRefreshTimer);
+      sessieAutoRefreshTimer = null;
+    }
+  }
+
+  function activateSessionFromHeader(){
+    google.script.run
+      .withSuccessHandler(res => {
+        // Na activeren: dashboard opnieuw laden
+        loadSessionDashboard();
+
+        // Als sessie nieuw was → start cash vragen
+        if (res && res.reused === false) {
+          if (typeof checkSessionOnLoad === 'function') {
+            checkSessionOnLoad();
+          }
+        }
+      })
+      .withFailureHandler(err => {
+        alert(err && err.message ? err.message : err);
+      })
+      .apiActivateSession();
+  }
+
+  function confirmEndSession(withValue){
+    const val = document.getElementById('endCashInput').value;
+    document.getElementById('endSessionModal').style.display = 'none';
+
+    google.script.run
+      .withSuccessHandler(() => {
+        showToast('Sessie afgesloten');
+        openStartSessionModal();
+      })
+      .closeSession(withValue ? val : null);
+  }
+
+  function renderSessionLoading(){
+    document.getElementById('sessieHeader').innerHTML =
+      '<span class="muted">Laden sessiegegevens…</span>';
+
+    document.getElementById('sessieToday').innerHTML =
+      '<span class="muted">Laden…</span>';
+
+    document.getElementById('sessieCash').innerHTML =
+      '<span class="muted">Laden…</span>';
+
+    document.getElementById('sessieTotals').innerHTML =
+      '<span class="muted">Laden…</span>';
+
+    // KPI cards resetten
+    const kpis = document.getElementById('sessieKpis');
+    if (kpis){
+      kpis.querySelectorAll('.total-big').forEach(el => {
+        el.textContent = '—';
+      });
+    }
+  }
+  function showSessionSkeletons() {
+    // Header
+    document.getElementById('sessieHeader').classList.add('is-loading');
+
+    // Chart skeletons
+    const monthSkel = document.getElementById('monthChartSkeleton');
+    const donutSkel = document.getElementById('donutSkeleton');
+
+    if (monthSkel) monthSkel.style.display = 'block';
+    if (donutSkel) donutSkel.style.display = 'block';
+
+    // Hide charts
+    const monthChart = document.getElementById('monthChart');
+    const donutChart = document.getElementById('paymentDonutChart');
+
+    if (monthChart) monthChart.style.display = 'none';
+    if (donutChart) donutChart.style.display = 'none';
+
+    // KPI skeletons zichtbaar
+    document.querySelectorAll('.sessie-kpi .skeleton').forEach(el => {
+      el.style.display = 'block';
+    });
+
+    document.querySelectorAll('.sessie-kpi .total-big').forEach(el => {
+      el.style.display = 'none';
+    });
+  }
+
+  function hideSessionSkeletons() {
+    // Header
+    document.getElementById('sessieHeader').classList.remove('is-loading');
+
+    // Chart skeletons weg
+    const monthSkel = document.getElementById('monthChartSkeleton');
+    const donutSkel = document.getElementById('donutSkeleton');
+
+    if (monthSkel) monthSkel.style.display = 'none';
+    if (donutSkel) donutSkel.style.display = 'none';
+
+    // Charts tonen
+    const monthChart = document.getElementById('monthChart');
+    const donutChart = document.getElementById('paymentDonutChart');
+
+    if (monthChart) monthChart.style.display = 'block';
+    if (donutChart) donutChart.style.display = 'block';
+
+    // KPI’s tonen
+    document.querySelectorAll('.sessie-kpi .skeleton').forEach(el => {
+      el.style.display = 'none';
+    });
+
+    document.querySelectorAll('.sessie-kpi .total-big').forEach(el => {
+      el.style.display = 'block';
+    });
+  }
+
+
+  // ===== SESSIE DASHBOARD =====
+  function loadSessionDashboard(){
+    // 🔹 DIRECT loading tonen
+    showSessionSkeletons();
+
+    const sel = document.getElementById('sessieMonthSelect');
+    const monthKey = sel && sel.value ? sel.value : '';
+
+    google.script.run
+      .withSuccessHandler(d => {
+        renderSessionDashboard(d);
+        console.log('[SESSIE DASHBOARD DATA]', d);
+      })
+      .withFailureHandler(err => {
+        hideSessionSkeletons();
+        console.error(err);
+        document.getElementById('sessieHeader').innerHTML =
+          `<span class="muted">Fout bij laden sessiegegevens</span>`;
+      })
+      .getSessionDashboardData(monthKey);
+  }
+
+  function renderSessionDashboard(d){
+
+    /* =========================
+      Guards
+    ========================= */
+    if (!d) {
+      hideSessionSkeletons();
+      document.getElementById('sessieHeader').innerHTML =
+        '<span class="muted">Geen sessiegegevens beschikbaar</span>';
+      return;
+    }
+
+    if (d.ok === false) {
+      hideSessionSkeletons();
+      document.getElementById('sessieHeader').innerHTML =
+        `<div class="muted">Backend fout: ${String(d.error || 'onbekend')}</div>`;
+      console.error('Backend error object:', d);
+      return;
+    }
+
+    hideSessionSkeletons();
+
+    /* =========================
+      Helpers
+    ========================= */
+    function fmtDateTime(v){
+      if (!v) return '—';
+      const dt = new Date(v);
+      if (isNaN(dt)) return String(v);
+      return dt.toLocaleString('nl-NL', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+
+    const euroSafe = v => euro(Number(v) || 0);
+
+    /* =========================
+      Status / labels
+    ========================= */
+    const isClosed = !!d.session.endTime;
+    const nowHour  = new Date().getHours();
+
+    const todayLabel = new Date().toLocaleDateString('nl-NL', {
+      weekday: 'long',
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric'
+    });
+
+    const activateBtn = isClosed
+      ? `<button class="btn-sessie" onclick="activateSessionFromHeader()">Sessie activeren</button>`
+      : '';
+
+    const statusBadge = isClosed
+      ? `<span class="sessie-active-badge" style="background:#e5e7eb;color:#374151">GESLOTEN</span>`
+      : `<span class="sessie-active-badge">ACTIEF</span>`;
+
+    let warning = '';
+    if (!isClosed && nowHour >= 21) {
+      warning = `
+        <div style="
+          margin-top:12px;
+          padding:8px 10px;
+          border-radius:8px;
+          background:#fff3cd;
+          border:1px solid #ffe69c;
+          color:#92400e;
+          font-size:13px;
+        ">
+          ⚠️ Sessie is nog niet afgesloten
+        </div>
+      `;
+    }
+
+    /* =========================
+      HEADER (ÉÉN plek)
+    ========================= */
+    document.getElementById('sessieHeader').innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap">
+
+        <div>
+          <div class="muted" style="margin-bottom:4px">${todayLabel}</div>
+          <div style="font-size:18px; font-weight:600; display:flex; gap:12px; align-items:center">
+            <span>Sessie ${d.session.id} ${statusBadge}</span>
+            ${activateBtn}
+          </div>
+        </div>
+
+        <div style="text-align:right; min-width:200px">
+          <div style="font-size:13px">
+            <span class="muted">Start</span><br>
+            <strong>${fmtDateTime(d.session.startTime)}</strong>
+          </div>
+          <div style="font-size:13px; margin-top:6px">
+            <span class="muted">Eind</span><br>
+            <strong>${fmtDateTime(d.session.endTime)}</strong>
+          </div>
+        </div>
+
+      </div>
+
+      ${warning}
+    `;
+    // ===== Month dropdown vullen =====
+    const sel = document.getElementById('sessieMonthSelect');
+    if (sel && d.availableMonths && Array.isArray(d.availableMonths)) {
+      // alleen opnieuw bouwen als opties leeg zijn of month niet aanwezig is
+      if (!sel.options.length) {
+        sel.innerHTML = d.availableMonths.map(k => {
+          const isSel = (k === d.selectedMonth) ? 'selected' : '';
+          return `<option value="${k}" ${isSel}>${monthKeyToLabel(k)}</option>`;
+        }).join('');
+      } else {
+        // alleen value syncen
+        sel.value = d.selectedMonth || sel.value;
+      }
+    }
+
+    function monthKeyToLabelNL(key){
+      // key = "YYYY-MM"
+      const y = Number(key.slice(0,4));
+      const m = Number(key.slice(5,7)) - 1;
+      const dt = new Date(y, m, 1);
+      return dt.toLocaleDateString('nl-NL', { month: 'long', year: 'numeric' });
+    }
+
+    // ...
+    const label = monthKeyToLabelNL(d.selectedMonth || '');
+    document.getElementById('donutTitle').textContent = `Transacties in ${label}`;
+
+
+    // ===== KPI cards =====
+    const k = d.kpis || {};
+    document.getElementById('kpiMonthRevenue').textContent = euro(Number(k.monthRevenue) || 0);
+    document.getElementById('kpiMonthProfit').textContent = euro(Number(k.monthProfit) || 0);
+    document.getElementById('kpiQuarterRevenueCurrent').textContent = euro(Number(k.quarterRevenue) || 0);
+    document.getElementById('kpiQuarterRevenuePrev').textContent = euro(Number(k.quarterRevenuePrevYear) || 0);
+    document.getElementById('kpiYtdRevenueCurrent').textContent = euro(Number(k.ytdRevenue) || 0);
+    // als je later YTD vorig jaar toevoegt:
+    document.getElementById('kpiYtdRevenuePrev').textContent = euro(Number(k.ytdRevenuePrevYear) || 0);
+
+
+    /* =========================
+      VANDAAG
+    ========================= */
+    const p = d.today.payments || {};
+
+    document.getElementById('sessieToday').innerHTML = `
+      <div class="sessie-big">${euroSafe(d.today.total)}</div>
+      <div class="sessie-stat"><span>Transacties</span><strong>${d.today.count || 0}</strong></div>
+      <div class="sessie-stat"><span>Pin</span><strong>${euroSafe(p.pin)}</strong></div>
+      <div class="sessie-stat"><span>Contant</span><strong>${euroSafe(p.contant)}</strong></div>
+      <div class="sessie-stat"><span>Tikkie</span><strong>${euroSafe(p.tikkie)}</strong></div>
+      <div class="sessie-stat"><span>Marktplaats</span><strong>${euroSafe(p.marktplaats)}</strong></div>
+      <div class="sessie-stat"><span>Website</span><strong>${euroSafe(p.website)}</strong></div>
+      <div class="sessie-stat"><span>Overig</span><strong>${euroSafe(p.overig)}</strong></div>
+    `;
+
+    /* =========================
+      KAS
+    ========================= */
+    document.getElementById('sessieCash').innerHTML = `
+      <div class="sessie-stat"><span>Start cash</span><strong>${euroSafe(d.cash.startCash)}</strong></div>
+      <div class="sessie-stat"><span>Eind cash</span><strong>${euroSafe(d.cash.endCash)}</strong></div>
+      <div class="sessie-stat"><span>Contant verkocht</span><strong>${euroSafe(d.cash.cashSales)}</strong></div>
+      <div class="sessie-stat"><span>Verschil</span><strong>${euroSafe(d.cash.diff)}</strong></div>
+      <div class="sessie-stat"><span>Logisch</span><strong>${d.cash.logical || '-'}</strong></div>
+    `;
+
+    /* =========================
+      TOTALEN
+    ========================= */
+    document.getElementById('sessieTotals').innerHTML = `
+      <div class="sessie-stat"><span>Vandaag</span><strong>${euroSafe(d.totals.day)}</strong></div>
+      <div class="sessie-stat"><span>Afgelopen week</span><strong>${euroSafe(d.totals.week)}</strong></div>
+      <div class="sessie-stat"><span>Deze maand</span><strong>${euroSafe(d.totals.month)}</strong></div>
+    `;
+
+    /* =========================
+      GRAFIEK
+    ========================= */
+    renderMonthChart(d.monthChart || []);
+      if (d.paymentCounts) {
+      renderPaymentDonut(d.paymentCounts);
+    }
+
+  }
+
+  function renderMonthChart(rows){
+    if (!window.Chart) {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+      s.onload = ()=> renderMonthChart(rows);
+      document.body.appendChild(s);
+      return;
+    }
+
+    const ctx = document.getElementById('monthChart').getContext('2d');
+    if (window._monthChart) window._monthChart.destroy();
+
+    window._monthChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: rows.map(r => r.date.slice(8,10)),
+        datasets: [{
+          data: rows.map(r => r.total),
+          borderColor: '#297900',
+          backgroundColor: 'rgba(41,121,0,.08)',
+          fill: true,
+          tension: 0.3,
+          pointRadius: 3
+        }]
+      },
+      options: {
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => euro(ctx.parsed.y)
+            }
+          }
+        },
+        scales: {
+          y: {
+            ticks: {
+              callback: v => '€ ' + v
+            }
+          }
+        }
+      }
+    });
+  }
+
+  function renderPaymentDonut(paymentCounts){
+    if (!window.Chart) {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+      s.onload = () => renderPaymentDonut(paymentCounts);
+      document.body.appendChild(s);
+      return;
+    }
+
+    const ctx = document.getElementById('paymentDonutChart');
+    if (!ctx) return;
+
+    const labels = [
+      'Pin',
+      'Contant',
+      'Tikkie',
+      'Marktplaats',
+      'Website',
+      'Overig',
+      'Derving'
+    ];
+
+    const data = [
+      paymentCounts.pin || 0,
+      paymentCounts.contant || 0,
+      paymentCounts.tikkie || 0,
+      paymentCounts.marktplaats || 0,
+      paymentCounts.website || 0,
+      paymentCounts.overig || 0,
+      paymentCounts.derving || 0
+    ];
+
+    const total = data.reduce((a, b) => a + b, 0);
+
+    const colors = [
+      '#005199', // Pin
+      '#60A500', // Contant
+      '#00B6D9', // Tikkie
+      '#EAA465', // Marktplaats
+      '#873EFF', // Website
+      '#FFD700', // Overig
+      '#ff0000' // derving
+    ];
+
+    if (window._paymentDonutChart) {
+      window._paymentDonutChart.destroy();
+    }
+
+    window._paymentDonutChart = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels,
+        datasets: [{
+          data,
+          backgroundColor: colors,
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        cutout: '65%',
+        plugins: {
+          legend: {
+            position: 'left',
+            align: 'center',
+            labels: {
+              boxWidth: 14,
+              usePointStyle: true,
+              padding: 16
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: c => `${c.label}: ${c.parsed}`
+            }
+          }
+        }
+      },
+      plugins: [{
+        id: 'centerText',
+        beforeDraw(chart) {
+          const { ctx, chartArea } = chart;
+          if (!chartArea) return;
+
+          const centerX = (chartArea.left + chartArea.right) / 2;
+          const centerY = (chartArea.top + chartArea.bottom) / 2;
+
+          ctx.save();
+
+          // Label "Totaal"
+          ctx.font = '500 14px system-ui, -apple-system, BlinkMacSystemFont';
+          ctx.fillStyle = '#6b7280';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('Totaal', centerX, centerY - 18);
+
+          // Groot getal
+          const fontSize = Math.min(
+            chartArea.right - chartArea.left,
+            chartArea.bottom - chartArea.top
+          ) / 3.5;
+
+          ctx.font = `700 25px system-ui, -apple-system, BlinkMacSystemFont`;
+          ctx.fillStyle = '#111827';
+          ctx.fillText(total, centerX, centerY + 8);
+
+          ctx.restore();
+        }
+      }]
+    });
+  }
+
+
+  function monthKeyToLabel(key){
+    // key = YYYY-MM
+    const y = Number(String(key).slice(0,4));
+    const m = Number(String(key).slice(5,7)) - 1;
+    const d = new Date(y, m, 1);
+    return d.toLocaleDateString('nl-NL', { month:'long', year:'numeric' });
+  }
+
+  function onSessionMonthChange(){
+    loadSessionDashboard();
+  }
+
+
+    scan.addEventListener('keydown', e=>{
+      if (e.key === 'Enter') addScan();
+    });
+    load();
+
+    // ===== Camera =====
+    let codeReader = null;
+    let streamOn   = false;
+    let barcodeLoop = null;
+
+    async function toggleCamera(){
+      const wrap  = document.getElementById('cameraWrap');
+      const btn   = document.getElementById('camBtn');
+      const video = document.getElementById('preview');
+
+      if (streamOn){
+        stopCamera();
+        return;
+      }
+
+      try {
+        wrap.style.display = 'block';
+        video.style.display = 'block';
+        btn.textContent = 'Stop camera';
+
+        if (window.ZXing && ZXing.BrowserMultiFormatReader){
+          codeReader = new ZXing.BrowserMultiFormatReader();
+          await codeReader.decodeFromConstraints(
+            { video:{ facingMode:{ ideal:'environment' } } },
+            video,
+            (result)=>{
+              if (result){
+                scan.value = result.getText();
+                addScan();
+              }
+            }
+          );
+          streamOn = true;
+          return;
+        }
+
+        if ('BarcodeDetector' in window && navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
+          const stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment' } });
+          video.srcObject = stream;
+          await video.play();
+          const detector = new BarcodeDetector({
+            formats:['qr_code','code_128','code_39','ean_13','ean_8']
+          });
+
+          barcodeLoop = async ()=>{
+            if (!streamOn) return;
+            try{
+              const codes = await detector.detect(video);
+              if (codes && codes.length){
+                scan.value = codes[0].rawValue;
+                addScan();
+              }
+            } catch(e){}
+            requestAnimationFrame(barcodeLoop);
+          };
+
+          streamOn = true;
+          barcodeLoop();
+          return;
+        }
+
+        throw new Error('Geen compatibele scantechnologie gevonden.');
+      } catch(e){
+        alert('Camera niet beschikbaar: ' + (e.message || e));
+        stopCamera();
+      }
+    }
+
+    function stopCamera(){
+      const wrap  = document.getElementById('cameraWrap');
+      const btn   = document.getElementById('camBtn');
+      const video = document.getElementById('preview');
+
+      try { if (codeReader) codeReader.reset(); } catch(e){}
+      const s = video.srcObject;
+      if (s){
+        try { s.getTracks().forEach(t=>t.stop()); } catch(e){}
+      }
+      video.srcObject = null;
+
+      wrap.style.display = 'none';
+      video.style.display = 'none';
+      btn.textContent = 'Camera';
+      streamOn = false;
+    }
+    
+    function setBtnLoading(btnId, loading, text) {
+      const btn = document.getElementById(btnId);
+      if (!btn) return;
+
+      if (loading) {
+        btn.dataset.originalText = btn.textContent;
+        btn.textContent = text || 'Laden…';
+        btn.disabled = true;
+      } else {
+        btn.textContent = btn.dataset.originalText || btn.textContent;
+        btn.disabled = false;
+      }
+    }
+
+
+    function lookupCodeUi(){
+      const inp = document.getElementById('codeInput');
+      const box = document.getElementById('codeResult');
+      const code = (inp?.value || '').trim();
+
+      if (!code) {
+        box.innerHTML = '<span class="muted">Voer eerst een code in.</span>';
+        return;
+      }
+
+      setBtnLoading('codeCheckBtn', true);
+      box.innerHTML = '<span class="muted">Bezig met zoeken…</span>';
+
+      google.script.run
+        .withSuccessHandler(res => {
+          setBtnLoading('codeCheckBtn', false);
+          console.log('apiCodeLookup →', res);
+
+          if (!res || res.ok === false) {
+            box.innerHTML = `<span class="muted">Fout: ${String(res?.error || 'onbekend')}</span>`;
+            return;
+          }
+
+          if (!res.found) {
+            box.innerHTML = `<span class="muted">Code niet gevonden.</span>`;
+            return;
+          }
+
+          const type = String(res.type || '').toUpperCase();
+          const activeTxt = res.isUsable ? '✅ bruikbaar' : (res.isExpired ? '⛔ verlopen' : '⛔ niet actief');
+
+          if (type === 'GIFTCARD') {
+            box.innerHTML = `
+              <div><b>GIFTCARD</b> (${activeTxt})</div>
+              <div>Saldo: <b>€ ${fmtMoney(res.saldo)}</b></div>
+              <div class="muted">Code: ${escapeHtml(res.code)}</div>
+            `;
+          } else if (type === 'DISCOUNT') {
+            const v = res.waarde;
+            const vt = String(res.waarde_type || '').toUpperCase();
+            const nice = (vt === 'PERCENT') ? `${v}%` : `€ ${fmtMoney(v)}`;
+            box.innerHTML = `
+              <div><b>DISCOUNT</b> (${activeTxt})</div>
+              <div>Waarde: <b>${escapeHtml(String(nice))}</b></div>
+              <div class="muted">Code: ${escapeHtml(res.code)}</div>
+            `;
+          } else {
+            box.innerHTML = `
+              <div><b>Onbekend type</b> (${activeTxt})</div>
+              <div class="muted">Type in sheet: ${escapeHtml(String(res.type))}</div>
+            `;
+          }
+        })
+        .withFailureHandler(err => {
+          setBtnLoading('codeCheckBtn', false);
+          console.error(err);
+          box.innerHTML = `<span class="muted">Fout: ${String(err?.message || err)}</span>`;
+        })
+        .apiCodeLookup(code);
+    }
+
+  function applyCodeUi(){
+    setBtnLoading('codeApplyBtn', true);
+    const code = (document.getElementById('codeInput')?.value || '').trim();
+    if (!code) return;
+
+    // Stap 1: lookup doen
+    google.script.run
+      .withSuccessHandler(lookup => {
+        if (!lookup || !lookup.ok || !lookup.found) {
+          setBtnLoading('codeApplyBtn', false);
+          alert(lookup?.error || 'Code niet gevonden');
+          return;
+        }
+
+        const type = String(lookup.type || '').toUpperCase();
+
+        // Stap 2: juiste apply-functie kiezen
+        if (type === 'DISCOUNT') {
+          google.script.run
+            .withSuccessHandler(res => {
+                setBtnLoading('codeApplyBtn', false);
+                if (!res || !res.ok) {
+                  alert(res?.error || 'Kon korting niet toepassen');
+                  return;
+                }
+                activeDiscount = res.discount;               // 🔥 frontend state
+                activeGiftcard = null;
+                hasActiveDiscountOrGiftcard = true;
+
+                updateTotalLocal();                          // 🔥 frontend berekening
+                refreshActiveCodeStatus();
+                showToast('Korting toegepast');
+
+                document.getElementById('codeClearBtn').style.visibility = 'visible';
+              })
+            .withFailureHandler(err => {
+              setBtnLoading('codeApplyBtn', false);
+              alert(err?.message || err);
+            })
+            .apiApplyDiscountCode(code);
+
+          return;
+        }
+
+        if (type === 'GIFTCARD') {
+          google.script.run
+            .withSuccessHandler(res => {
+              setBtnLoading('codeApplyBtn', false);
+              if (!res || !res.ok) {
+                alert(res?.error || 'Kon cadeaubon niet toepassen');
+                return;
+              }
+              activeGiftcard = {
+                ...res.giftcard,
+                applied: Number(String(res.giftcard.applied).replace(',', '.'))
+              };               // 🔥 frontend state
+              activeDiscount = null;
+              hasActiveDiscountOrGiftcard = true;
+
+              updateTotalLocal();                          // 🔥 frontend berekening
+              refreshActiveCodeStatus();
+              showToast('Cadeaubon toegepast');
+
+              document.getElementById('codeClearBtn').style.visibility = 'visible';
+            })
+            .withFailureHandler(err => {
+              setBtnLoading('codeApplyBtn', false);
+              alert(err?.message || err);
+            })
+            .apiApplyGiftcardCode(code);
+            
+
+          return;
+        }
+        setBtnLoading('codeApplyBtn', false);
+        alert('Onbekend codetype');
+        
+      })
+      .withFailureHandler(err => {
+        alert(err?.message || err);
+      })
+      .apiCodeLookup(code);
+  }
+
+    function refreshTotalsWithDiscount(){
+      google.script.run
+        .withSuccessHandler(res => {
+          if (!res || !res.ok) return;
+
+          const totalEl = document.getElementById('totalBig');
+          if (totalEl) totalEl.textContent = euro(res.total);
+
+          const small = document.getElementById('total');
+          if (small) small.textContent = euro(res.total);
+
+          const box = document.getElementById('codeResult');
+          if (res.discount && box) {
+            box.innerHTML += `
+              <div class="muted">
+                Korting ${res.discount.code}: − ${euro(res.discount.amount)}
+              </div>
+            `;
+          }
+        })
+        .apiGetCartTotalsWithDiscount();
+    }
+
+    function refreshTotalsWithGiftcard(){
+      google.script.run
+        .withSuccessHandler(res => {
+          if (!res || !res.ok) return;
+
+          const totalEl = document.getElementById('totalBig');
+          if (totalEl) totalEl.textContent = euro(res.totalToPay);
+
+          const small = document.getElementById('total');
+          if (small) small.textContent = euro(res.totalToPay);
+
+          const box = document.getElementById('codeResult');
+          if (!box) return;
+
+          box.innerHTML = '';
+
+          if (res.giftcard) {
+            box.innerHTML = `
+              <div class="muted">
+                Cadeaubon ${res.giftcard.code}<br>
+                Toegepast: − ${euro(res.giftcard.applied)}<br>
+                Resterend saldo: ${euro(res.giftcard.remaining)}
+              </div>
+            `;
+          }
+        })
+        .apiGetCartTotalsWithGiftcard();
+    }
+    function clearActiveCodeUi() {
+      setBtnLoading('codeClearBtn', true);
+
+      // 🔥 frontend state resetten
+      activeDiscount = null;
+      activeGiftcard = null;
+      hasActiveDiscountOrGiftcard = false;
+
+      // 🔥 totals opnieuw berekenen (frontend-only)
+      updateTotalLocal();
+
+      // 🔥 UI opschonen
+      clearCodeBoxUi();
+      refreshActiveCodeStatus();
+      document.getElementById('codeClearBtn').style.visibility = 'hidden';
+
+      // 🔥 backend state ook resetten (veilig, maar niet leidend)
+      google.script.run.apiClearDiscount();
+      google.script.run.apiClearGiftcard();
+
+      setBtnLoading('codeClearBtn', false);
+      showToast('Code verwijderd');
+    }
+
+    // Helpers
+    function fmtMoney(v){
+      const n = Number(String(v).replace(',', '.'));
+      if (isNaN(n)) return String(v || '0');
+      return n.toFixed(2).replace('.', ',');
+    }
+
+    function escapeHtml(s){
+      return String(s || '').replace(/[&<>"']/g, m => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+      })[m]);
+    }
+
+    function refreshActiveCodeStatus(){
+      const box = document.getElementById('activeCodeStatus');
+      if (!box) return;
+
+      box.innerHTML = '';
+
+      if (activeDiscount) {
+        box.innerHTML += `<div>🔻 Korting actief (${activeDiscount.code})</div>`;
+      }
+
+      if (activeGiftcard) {
+        box.innerHTML += `<div>🎁 Cadeaubon actief</div>`;
+      }
+
+      document.getElementById('codeClearBtn').style.visibility =
+        (activeDiscount || activeGiftcard) ? 'visible' : 'hidden';
+    }
+
+    function clearCodeBoxUi(){
+      const inp = document.getElementById('codeInput');
+      const res = document.getElementById('codeResult');
+      if (inp) inp.value = '';
+      if (res) res.innerHTML = '';
+    }
+
+  </script>
+
+  <!-- Service Worker tijdelijk uit (debugvriendelijk) -->
+  <script>
+    // Laat deze voorlopig uit om HTTPS / SW issues te vermijden.
+    if (false && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.register('?file=sw', { scope: './' }).catch(()=>{});
+    }
+  </script>
+
+  <!-- Sticky footer spacer -->
+  <script>
+    (function stickyFooterSpace(){
+      const footer = document.querySelector('.footer');
+      if (!footer) return;
+      function applySpace(){
+        const h = footer.offsetHeight || 0;
+        document.documentElement.style.setProperty('--footer-h', h + 'px');
+      }
+      window.addEventListener('load', applySpace);
+      window.addEventListener('resize', applySpace);
+      if (window.ResizeObserver){
+        new ResizeObserver(applySpace).observe(footer);
+      } else {
+        setTimeout(applySpace, 100);
+      }
+    })();
+  </script>
+
+  <script>
+    (function () {
+
+      /* ===========================
+        HELPERS
+      =========================== */
+
+      function normaliseReceiptNo(raw) {
+        return String(raw || '')
+          .replace(/[\u200B-\u200D\uFEFF]/g, '')
+          .trim();
+      }
+
+      /* ===========================
+        RENDER RETURN RESULT UI
+      =========================== */
+      function renderReturnResult(data) {
+        const box = document.getElementById('retourResult');
+        if (!box) return;
+
+        console.log('[RET] renderReturnResult RAW:', data);
+
+        window.retourData = data;
+
+        if (!data || !data.head) {
+          box.innerHTML = `<div class="muted">Bon niet gevonden.</div>`;
+          return;
+        }
+
+        const h = data.head;
+        const lines = data.lines || [];
+
+        let html = `
+          <h4>Bon ${h.receipt_no}</h4>
+
+          <table class="bon-table">
+            <thead>
+              <tr>
+                <th>Retour?</th>
+                <th>SKU</th>
+                <th>Omschrijving</th>
+                <th>Prijs</th>
+                <th>Reden</th>
+              </tr>
+            </thead>
+            <tbody>
+        `;
+
+        lines.forEach((it, idx) => {
+          html += `
+            <tr>
+              <td>
+                <input type="checkbox"
+                      class="retour-check"
+                      data-idx="${idx}"
+                      ${it.alreadyReturned ? 'checked disabled' : ''}>
+                ${it.alreadyReturned ? '<span class="muted"> (al geretourneerd)</span>' : ''}
+              </td>
+              <td>${it.sku}</td>
+              <td>${it.desc}</td>
+              <td>€ ${Number(it.price).toFixed(2)}</td>
+              <td>
+                <select class="retour-reason"
+                        data-idx="${idx}"
+                        ${it.alreadyReturned ? 'disabled' : ''}>
+                  <option value="">- selecteer -</option>
+                  <option value="Niet goed">Niet goed</option>
+                  <option value="Verkeerde maat">Verkeerde maat</option>
+                  <option value="Beschadigd">Beschadigd</option>
+                  <option value="Niet naar wens">Niet naar wens</option>
+                  <option value="Overig">Overig</option>
+                </select>
+              </td>
+            </tr>
+          `;
+        });
+
+        html += `</tbody></table>`;
+
+        if (lines.length > 1) {
+          html += `
+            <div style="margin-top:12px;">
+              <label>
+                <input type="checkbox" id="applyAllReasons">
+                Zelfde reden toepassen op alle artikelen
+              </label>
+            </div>
+          `;
+        }
+
+        html += `
+          <div style="margin-top:18px; display:flex; gap:10px; flex-wrap:wrap;">
+            <button class="btn btn-primary"
+                    id="retourSubmitBtn"
+                    onclick="processReturn('${h.receipt_no}', this)">
+              Retour verwerken
+            </button>
+
+            <button class="btn btn-danger"
+                    onclick="openCancelReturnModal()">
+              Annuleer retour
+            </button>
+          </div>
+        `;
+
+        box.innerHTML = html;
+      }
+
+      /* ===========================
+        ZOEK BON
+      =========================== */
+      window.searchReturnReceipt = function () {
+        const inputEl = document.getElementById('retourBonInput');
+        const box = document.getElementById('retourResult');
+        if (!inputEl || !box) return;
+
+        const no = normaliseReceiptNo(inputEl.value);
+
+        if (!no) {
+          box.innerHTML = '<div class="muted">Vul een bonnummer in.</div>';
+          return;
+        }
+
+        box.innerHTML = '<div class="muted">Laden…</div>';
+
+        google.script.run
+          .withSuccessHandler(data => {
+            renderReturnResult(data);
+          })
+          .withFailureHandler(err => {
+            console.error('[RET] apiReturnGetSafe ERROR:', err);
+            box.innerHTML = `<div class="muted">Fout: ${(err && err.message) || err}</div>`;
+          })
+          .apiReturnGetSafe(no);
+      };
+
+      // 🔍 Enter-to-search voor retour bon
+      document.addEventListener('keydown', function (e) {
+
+        // Alleen actief als de retour-view zichtbaar is
+        const retourView = document.getElementById('view-retour');
+        if (!retourView || !retourView.classList.contains('active')) return;
+
+        const input = document.getElementById('retourBonInput');
+        if (!input) return;
+
+        // Alleen als focus in het inputveld zit
+        if (document.activeElement !== input) return;
+
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          if (typeof window.searchReturnReceipt === 'function') {
+            window.searchReturnReceipt();
+          }
+        }
+      });
+
+      /* ===========================
+        VERWERK RETOUR
+      =========================== */
+      window.processReturn = function (receiptNo, btn) {
+        if (btn) {
+          btn.disabled = true;
+          btn.dataset.originalText = btn.textContent;
+          btn.textContent = 'Laden…';
+        }
+
+        showSpinner(true);
+
+        if (!window.retourData || !window.retourData.lines) {
+          alert("Geen bon geladen.");
+          return;
+        }
+
+        const lines = window.retourData.lines;
+        const checks = document.querySelectorAll('.retour-check');
+        const applyAll = document.getElementById('applyAllReasons')?.checked || false;
+
+        const retourItems = [];
+
+        let globalReason = '';
+        if (applyAll) {
+          const el = document.querySelector('.retour-reason[data-idx="0"]');
+          if (!el || !el.value) {
+            alert("Selecteer eerst een reden.");
+            return;
+          }
+          globalReason = el.value;
+        }
+
+        checks.forEach(cb => {
+          if (!cb.checked) return;
+
+          const idx = cb.dataset.idx;
+          const reasonEl = document.querySelector(`.retour-reason[data-idx="${idx}"]`);
+          const reason = applyAll ? globalReason : (reasonEl?.value || '');
+
+          if (!reason) {
+            alert(`Selecteer een reden voor SKU ${lines[idx].sku}`);
+            return;
+          }
+
+          retourItems.push({
+            selected: true,
+            sku: String(lines[idx].sku || ''),
+            desc: String(lines[idx].desc || ''),
+            price: Number(lines[idx].price || 0),
+            reason: String(reason || '')
+          });
+        });
+
+        if (!retourItems.length) {
+          alert("Geen artikelen geselecteerd voor retour.");
+          return;
+        }
+
+
+        google.script.run
+          .withSuccessHandler(res => {
+            if (btn) {
+              btn.disabled = false;
+              btn.textContent = btn.dataset.originalText || 'Retour verwerken';
+            }
+
+            showSpinner(false);
+
+            if (!res || !res.ok) {
+              alert("Fout bij verwerken retour.");
+              return;
+            }
+
+            if (res.returnTicketUrl) {
+              window.open(res.returnTicketUrl, '_blank');
+            }
+
+            document.getElementById('retourResult').innerHTML =
+              '<div class="muted">Voer een bonnummer in om te beginnen.</div>';
+
+            alert("Retour verwerkt!");
+            loadRecentReturns();
+
+            if (btn) {
+              btn.disabled = false;
+              btn.textContent = btn.dataset.originalText || 'Retour verwerken';
+            }
+          })
+          .withFailureHandler(err => {
+            if (btn) {
+              btn.disabled = false;
+              btn.textContent = btn.dataset.originalText || 'Retour verwerken';
+            }
+
+            showSpinner(false);
+
+            console.error('[RET] apiProcessReturn ERROR:', err);
+            alert("Fout: " + ((err && err.message) || err));
+          })
+          .apiProcessReturn(receiptNo, { items: retourItems });
+      };
+
+      window.openCancelReturnModal = function (){
+        const m = document.getElementById('cancelReturnModal');
+        if (m) m.style.display = 'block';
+      };
+
+      window.closeCancelReturnModal = function (){
+        const m = document.getElementById('cancelReturnModal');
+        if (m) m.style.display = 'none';
+      };
+
+      window.confirmCancelReturn = function (){
+        window.closeCancelReturnModal();
+
+        // state opruimen
+        window.retourData = null;
+
+        const box = document.getElementById('retourResult');
+        if (box) {
+          box.innerHTML =
+            '<div class="muted">Voer een bonnummer in om te beginnen.</div>';
+        }
+
+        const input = document.getElementById('retourBonInput');
+        if (input) {
+          input.value = '';
+          input.focus();
+        }
+      };
+
+
+      /* ===========================
+        EXPORTS
+      =========================== */
+      window.renderReturnResult = renderReturnResult;
+
+      // cache net als bij Huren
+      let recentReturnsTbody = null;
+
+      function loadRecentReturns() {
+        console.log('[RET] tbody now =', document.getElementById('recentReturns'));
+        console.log('[RET] loadRecentReturns START');
+
+        // 1️⃣ tbody één keer ophalen en cachen
+        if (!recentReturnsTbody) {
+          recentReturnsTbody = document.querySelector('#recentReturns');
+        }
+
+        const tb = recentReturnsTbody;
+        if (!tb) {
+          console.log('[RET] recentReturns tbody niet gevonden');
+          return;
+        }
+
+        // 2️⃣ laadstatus tonen
+        tb.innerHTML = `
+          <tr>
+            <td colspan="4" class="muted" style="text-align:center;">
+              Laden…
+            </td>
+          </tr>
+        `;
+
+        console.log('[RET] calling apiGetRecentReturns…');
+
+        // 3️⃣ backend call (exact huur-patroon)
+        google.script.run
+          .withSuccessHandler(rows => {
+            console.log('[RET] rows type:', typeof rows, 'isArray:', Array.isArray(rows), 'rows:', rows);
+
+            tb.innerHTML = '';
+
+            if (!rows || !rows.length) {
+              tb.innerHTML = `
+                <tr>
+                  <td colspan="4" class="muted" style="text-align:center;">
+                    Geen retouren
+                  </td>
+                </tr>
+              `;
+              return;
+            }
+
+            // 4️⃣ per rij renderen (stabiel)
+            rows.forEach(r => {
+              const tr = document.createElement('tr');
+
+              const d = r.date ? new Date(r.date) : null;
+              const ds = d && !isNaN(d)
+                ? d.toLocaleDateString('nl-NL')
+                : '';
+
+              const amt = new Intl.NumberFormat('nl-NL', {
+                style: 'currency',
+                currency: 'EUR'
+              }).format(Number(r.amount) || 0);
+
+              tr.innerHTML = `
+                <td>${r.returnNo || ''}</td>
+                <td>${ds}</td>
+                <td class="amount">${amt}</td>
+                <td>
+                  ${r.url
+                    ? `<button class="btn btn-primary">Open Retour Bon</button>`
+                    : ''}
+                </td>
+              `;
+
+              if (r.url) {
+                tr.querySelector('button').onclick = () => {
+                  window.open(r.url, '_blank');
+                };
+              }
+
+              tb.appendChild(tr);
+            });
+          })
+          .withFailureHandler(err => {
+            console.error('[RET] apiGetRecentReturns FAIL:', err);
+            tb.innerHTML = `
+              <tr>
+                <td colspan="4" class="muted" style="text-align:center;">
+                  Fout bij laden
+                </td>
+              </tr>
+            `;
+          })
+          .apiGetRecentReturnsSafe(20);
+      }
+
+      // expliciet exposen
+      window.loadRecentReturns = loadRecentReturns;
+
+    })();
+  </script>
+
+  <script>
+    const huurState = new Map();
+
+    function addHuurScan(){
+      const inp = document.getElementById('huurScan');
+      const sku = (inp.value || '').trim();
+      if (!sku) return;
+
+      const tb = document.querySelector('#huurTbl tbody');
+
+      // 👇 tijdelijke laadregel
+      const loadingRow = document.createElement('tr');
+      loadingRow.innerHTML = `
+        <td colspan="5" style="text-align:center; font-style:italic; color:#6b7280;">
+          Laden…
+        </td>
+      `;
+      tb.appendChild(loadingRow);
+
+      google.script.run
+        .withSuccessHandler(line => {
+          tb.removeChild(loadingRow);
+
+          huurState.set(line.sku, {
+            sku: line.sku,
+            desc: line.desc,
+            verkoopprijs: line.verkoopprijs
+          });
+          renderHuurTable();
+        })
+        .withFailureHandler(err => {
+          tb.removeChild(loadingRow);
+          alert(err.message || err);
+        })
+        .apiLookupHuurSku(sku);
+
+      inp.value = '';
+      inp.focus();
+    }
+
+    function renderHuurTable(){
+      const tb = document.querySelector('#huurTbl tbody');
+      tb.innerHTML = '';
+
+      huurState.forEach(it => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${it.sku}</td>
+          <td>${it.desc}</td>
+          <td class="right">€ ${Number(it.verkoopprijs).toFixed(2)}</td>
+          <td class="right">
+            ${
+              it.huurTotaal === null
+                ? '<span style="color:#6b7280; font-style:italic;">Laden…</span>'
+                : typeof it.huurTotaal === 'number'
+                  ? '€ ' + it.huurTotaal.toFixed(2)
+                  : '—'
+            }
+          </td>
+          <td><button class="btn btn-danger">✕</button></td>
+        `;
+        tr.querySelector('button').onclick = () => {
+          huurState.delete(it.sku);
+          renderHuurTable();
+          updateHuurEindTotaal();
+        };
+        tb.appendChild(tr);
+      });
+    }
+
+    function startHuur(){
+
+      // 🔍 VALIDATIE EERST
+      if (!huurState.size) {
+        alert('Geen huurartikelen');
+        return;
+      }
+
+      const eind = document.getElementById('huurEindDatum').value;
+      if (!eind) {
+        alert('Selecteer einddatum');
+        return;
+      }
+      
+      const betaal = document.getElementById('huurBetaalwijze').value;
+      if (!betaal) {
+        alert('Selecteer een betaalwijze!');
+        return;
+      }
+
+      // 🔘 PAS NU PAS DE KNOP AAN
+      const btn = document.getElementById('startHuurBtn');
+      btn.disabled = true;
+      const oldText = btn.innerText;
+      btn.innerText = 'Laden…';
+
+      const klant = document.getElementById('huurKlant').value;
+
+      const items = [...huurState.values()].map(it => ({
+        sku: it.sku,
+        desc: it.desc,
+        verkoopprijs: it.verkoopprijs
+      }));
+
+      google.script.run
+        .withSuccessHandler(res => {
+
+          const items = [];
+          huurState.forEach(it => {
+            items.push({
+              sku: it.sku,
+              desc: it.desc,
+              huurTotaal: it.huurTotaal || 0
+            });
+          });
+
+          const payload = {
+            huurNr: res.huurNr,
+            startdatum: new Date(res.startdatum).toLocaleDateString('nl-NL'),
+            einddatum: new Date(res.einddatum).toLocaleDateString('nl-NL'),
+            items,
+            huurTotaal: res.huurTotaal,
+            borgTotaal: res.borgTotaal,
+            eindTotaal: res.eindTotaal,
+            betaalwijze: res.betaalwijze
+          };
+
+          google.script.run
+            .withSuccessHandler(print => {
+              const w = window.open('', '_blank');
+              w.document.write(print.html);
+              w.document.close();
+              w.focus();
+              w.print();
+            })
+            .apiPrintHuurBon(payload);
+            loadActieveHuren();
+
+          resetHuurForm();
+          btn.disabled = false;
+          btn.innerText = oldText;
+        })
+        .withFailureHandler(err => {
+          alert(err.message || err);
+          btn.disabled = false;
+          btn.innerText = oldText;
+        })
+        .apiStartHuur(
+          items,
+          new Date().toISOString(),
+          new Date(eind).toISOString(),
+          klant,
+          betaal
+        );
+    }
+
+    function updateHuurPreview(){
+      const eind = document.getElementById('huurEindDatum').value;
+      if (!eind || !huurState.size) return;
+
+      const start = new Date().toISOString();
+      const endDate = new Date(eind).toISOString();
+
+      // 👇 zet direct loading state per regel
+      huurState.forEach(it => {
+        it.huurTotaal = null; // null = loading
+      });
+      renderHuurTable();
+
+      huurState.forEach(it => {
+        google.script.run
+          .withSuccessHandler(res => {
+            if (!res.ok) return;
+
+            it.huurTotaal = res.huurTotaal;
+            it.borg = res.borg;
+            it.dagen = res.dagen;
+
+            renderHuurTable();
+            updateHuurEindTotaal();
+          })
+          .withFailureHandler(() => {
+            it.huurTotaal = 0;
+            renderHuurTable();
+          })
+          .apiCalcHuurPreview(
+            it.verkoopprijs,
+            start,
+            endDate
+          );
+      });
+    }
+
+    function updateHuurEindTotaal(){
+      let huur = 0;
+      let borg = 0;
+
+      huurState.forEach(it => {
+        if (typeof it.huurTotaal === 'number') {
+          huur += it.huurTotaal;
+        }
+        if (typeof it.borg === 'number') {
+          borg += it.borg;
+        }
+      });
+
+      document.getElementById('huurTotaal').innerText = huur.toFixed(2);
+      document.getElementById('huurBorgTotaal').innerText = borg.toFixed(2);
+      document.getElementById('huurEindTotaal').innerText = (huur + borg).toFixed(2);
+    }
+
+    function printHuurBon(){
+      if (!huurState.size) {
+        alert('Geen huurartikelen');
+        return;
+      }
+
+      const eind = document.getElementById('huurEindDatum').value;
+      if (!eind) {
+        alert('Selecteer einddatum');
+        return;
+      }
+
+      let huurTotaal = 0;
+      let borgTotaal = 0;
+
+      const items = [];
+      huurState.forEach(it => {
+        huurTotaal += it.huurTotaal || 0;
+        borgTotaal += it.borg || 0;
+        items.push({
+          sku: it.sku,
+          desc: it.desc,
+          huurTotaal: it.huurTotaal || 0
+        });
+      });
+
+      const payload = {
+        huurNr: 'PREVIEW',
+        startdatum: new Date().toLocaleDateString('nl-NL'),
+        einddatum: eind,
+        items,
+        huurTotaal,
+        borgTotaal,
+        eindTotaal: huurTotaal + borgTotaal,
+        betaalwijze: document.getElementById('huurBetaalwijze').value
+      };
+
+      google.script.run
+        .withSuccessHandler(res => {
+          const w = window.open('', '_blank');
+          w.document.write(res.html);
+          w.document.close();
+          w.focus();
+          w.print();
+        })
+        .withFailureHandler(err => alert(err.message || err))
+        .apiPrintHuurBon(payload);
+    }
+
+    function resetHuurForm(){
+      // invoervelden leeg
+      document.getElementById('huurEindDatum').value = '';
+      document.getElementById('huurKlant').value = '';
+      document.getElementById('huurBetaalwijze').value = '';
+
+      // state leeg
+      huurState.clear();
+
+      // UI reset
+      renderHuurTable();
+      updateHuurEindTotaal();
+    }
+
+    function loadActieveHuren(){
+      const tb = document.querySelector('#actieveHurenTbl tbody');
+      tb.innerHTML = `
+        <tr>
+          <td colspan="3" style="text-align:center; font-style:italic; color:#6b7280;">
+            Laden…
+          </td>
+        </tr>
+      `;
+
+      google.script.run
+        .withSuccessHandler(list => {
+          tb.innerHTML = '';
+
+          if (!list.length) {
+            tb.innerHTML = `
+              <tr>
+                <td colspan="3" style="text-align:center; color:#6b7280;">
+                  Geen actieve huren
+                </td>
+              </tr>
+            `;
+            return;
+          }
+
+          list.forEach(h => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>${h.huurNr}</td>
+              <td>${h.items.length} artikel(en)</td>
+              <td>
+                <button class="btn btn-danger">Ingeleverd</button>
+                <button class="btn btn-primary">Verkoop</button>
+              </td>
+            `;
+
+            tr.querySelector('button').onclick = () => eindigHuur(h.huurNr);
+
+            tr.querySelectorAll('button')[1].onclick = () => {
+              if (!confirm('Omzetten naar verkoop?')) return;
+              google.script.run
+                .withSuccessHandler(() => {
+                  alert('Omgezet naar verkoop');
+                  loadActieveHuren();
+                })
+                .apiOmzettenNaarVerkoop(h.huurNr);
+            };
+
+            tb.appendChild(tr);
+          });
+        })
+        .withFailureHandler(err => {
+          tb.innerHTML = '';
+          alert(err.message || err);
+        })
+        .apiGetActieveHuren();
+    }
+
+    function eindigHuur(huurNr){
+      if (!confirm('Huur ' + huurNr + ' afmelden?')) return;
+
+      google.script.run
+        .withSuccessHandler(() => {
+          loadActieveHuren();
+          alert('Huur afgemeld');
+        })
+        .withFailureHandler(err => alert(err.message || err))
+        .apiEindigHuur(huurNr);
+    }
+
+    document.getElementById('huurEindDatum').addEventListener('change', updateHuurPreview);
+    document.querySelector('[data-view="huur"]').addEventListener('click', loadActieveHuren);
+
+  </script>
+
+
+
+  <!-- Tabs + Bonnen loader + hybride 80mm herprint -->
+  <script>
+    // Tabs
+    (function(){
+      const tabs = document.querySelectorAll('.tab-btn[data-view]');
+
+      function show(view){
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.querySelectorAll('.tab-btn[data-view]').forEach(b => b.classList.remove('active'));
+
+        const btn = document.querySelector('.tab-btn[data-view="'+view+'"]');
+        const sec = document.getElementById('view-'+view);
+
+        if (btn) btn.classList.add('active');
+        if (sec) sec.classList.add('active');
+
+        // Stop altijd eerst
+        stopSessieAutoRefresh();
+
+        if (view === 'bonnen') loadReceipts();
+
+        if (view === 'sessie') {
+          loadSessionDashboard();
+          startSessieAutoRefresh();
+        }
+        if (view === 'retour') {
+          setTimeout(() => {
+            loadRecentReturns();
+          }, 0);
+        }
+        if (view === 'voorraad') {
+          // Zorg dat dropdown + recent lijst altijd opnieuw laden bij openen tab
+          try { voorraadInitTabs(); } catch(e){}
+          try { voorraadLoadRecent(); } catch(e){}
+        }
+      }
+
+      tabs.forEach(b => {
+        b.addEventListener('click', () => {
+          const v = b.dataset.view;
+          show(v);
+          location.hash = v;
+        });
+      });
+
+      // hash deep-link
+      if (location.hash){
+        const v = location.hash.slice(1);
+        if (document.getElementById('view-'+v)) show(v);
+      }
+      // Als sessie-tab actief is bij load → dashboard laden
+      if (location.hash === '#sessie') {
+        loadSessionDashboard();
+      }
+
+      window.addEventListener('hashchange', () => {
+        const v = location.hash.slice(1);
+        if (document.getElementById('view-'+v)) show(v);
+      });
+
+      window.switchView = show;
+    })();
+
+    // Bonnen-lijst (hybride gedrag: PDF + 80mm)
+    function loadReceipts(){
+      const q = (document.getElementById('bonSearch').value || '').trim();
+      const list = document.getElementById('bonList');
+      list.innerHTML = '<tr><td colspan="6" class="muted">Laden…</td></tr>';
+
+      google.script.run
+        .withSuccessHandler(rows => {
+          console.log('apiListReceipts →', rows);
+
+          if (!rows || !Array.isArray(rows) || rows.length === 0) {
+            list.innerHTML = '<tr><td colspan="6" class="muted">Geen resultaten</td></tr>';
+            return;
+          }
+
+          const html = rows.map(r => {
+            const d = (r.date instanceof Date) ? r.date : new Date(r.date || '');
+            const dts = (d && !isNaN(d)) ? d.toLocaleString('nl-NL') : (r.date || '');
+            const tot = new Intl.NumberFormat('nl-NL',{style:'currency',currency:'EUR'}).format(Number(r.total)||0);
+            const pdf = String(r.pdfUrl || '').replace(/"/g,'&quot;');
+            const bon = String(r.bon80Url || '').replace(/"/g,'&quot;');
+
+            return `
+              <tr>
+                <td>${r.receipt_no || ''}</td>
+                <td>${dts}</td>
+                <td>${r.pay || ''}</td>
+                <td class="right">${tot}</td>
+                <td>${r.email || ''}</td>
+                <td class="bon-actions">
+                  ${pdf ? `<button class="btn" onclick="openPdf('${pdf}')">PDF</button>` : ''}
+                  ${bon ? `<button class="btn btn-primary" onclick="window.open('${bon}', '_blank')">Print 80mm</button>` : ''}
+                </td>
+              </tr>`;
+          }).join('');
+
+          list.innerHTML = html || '<tr><td colspan="6" class="muted">Geen bonnen gevonden</td></tr>';
+        })
+        .withFailureHandler(err => {
+          console.error('apiListReceipts FAILED:', err);
+          list.innerHTML = '<tr><td colspan="6" class="muted">Fout bij laden</td></tr>';
+        })
+        .apiListReceipts(200, q);
+    }
+
+    function openPdf(url){
+      if (!url){
+        alert('Geen PDF beschikbaar.');
+        return;
+      }
+      window.open(url, '_blank');
+    }
+
+    // Hybride: probeer live 80mm → anders val terug op PDF
+    async function reprint80(receiptNo, pdfUrlFallback){
+      try{
+        const data = await new Promise((ok, fail) => {
+          google.script.run
+            .withSuccessHandler(ok)
+            .withFailureHandler(fail)
+            .apiGetReceiptForPrint(receiptNo);
+        });
+
+        if (!data || !data.head || !data.items || !data.items.length){
+          throw new Error('Onvolledige bondata');
+        }
+
+        const head = data.head;
+        const d    = head.date ? new Date(head.date) : null;
+        const dateString = (d && !isNaN(d))
+          ? d.toLocaleString('nl-NL')
+          : (head.date || '');
+
+        const cart = (data.items || []).map(it => ({
+          sku: it.sku,
+          desc: it.desc,
+          price: it.price,
+          qty: it.qty,
+          subt: it.subtotal
+        }));
+
+        const html = buildReceipt80mmHtml({
+          receiptNo,
+          payMethod,
+          customerEmail,
+          total,
+          subtotal,
+          discount: discountAmount,
+          dateString,
+          cart
+        });
+
+        const w = window.open('', '_blank', 'width=420,height=800');
+        if (!w || !w.document){
+          throw new Error('Pop-up geblokkeerd door browser');
+        }
+        w.document.open();
+        w.document.write(html);
+        w.document.close();
+      } catch(e){
+        console.error('reprint80 fout:', e);
+        if (pdfUrlFallback){
+          alert(
+            'Kon de 80mm-bon niet live genereren voor bon ' + receiptNo +
+            '.\nWe openen nu de PDF-bon.'
+          );
+          openPdf(pdfUrlFallback);
+        } else {
+          alert('Kon de 80mm-bon niet genereren voor bon ' + receiptNo + '.');
+        }
+      }
+    }
+  </script>
+
+  <!-- 80mm ticket HTML-builder (client) -->
+  <script>
+    function buildReceipt80mmHtml(opts){
+      const receiptNo     = opts.receiptNo || '';
+      const payMethod     = opts.payMethod || '-';
+      const customerEmail = opts.customerEmail || '';
+      const total         = Number(opts.total) || 0;
+      const dateString    = opts.dateString || '';
+      const cart          = opts.cart || [];
+      const subtotal = Number(opts.subtotal || 0);
+      const discount = Number(opts.discount || 0);
+
+
+      const enc = encodeURIComponent;
+      const fmt = (n)=> new Intl.NumberFormat('nl-NL',{
+        style:'currency',
+        currency:'EUR'
+      }).format(Number(n||0));
+
+      const qrUrl = 'https://quickchart.io/qr?text=' +
+        enc(BRAND.webshopUrl || '') +
+        '&size=180&margin=1&format=png';
+
+      const code128Url = 'https://bwipjs-api.metafloor.com/?bcid=code128&text=' +
+        enc(receiptNo || '') +
+        '&scale=3&height=12&includetext&textxalign=center';
+
+      // Belangrijk: script escapen in template
+      const autoPrintScript = `
+        <script>
+          window.addEventListener('load', function(){
+            setTimeout(function(){
+              try { window.print(); } catch(e){}
+              setTimeout(function(){
+                try { window.close(); } catch(e){}
+              }, 800);
+            }, 300);
+          });
+        <\\/script>`;
+
+      const rowsHtml = cart.map(it => {
+        const displaySku = (String(it.sku || '').slice(0,5)).padEnd(5,' ');
+        const subt = (it.subt != null)
+          ? Number(it.subt)
+          : (Number(it.price||0) * Number(it.qty||1));
+
+        return `
+          <tr>
+            <td class="sku mono">${displaySku}</td>
+            <td class="qty">${it.qty || 1}</td>
+            <td class="desc">${String(it.desc || '').replace(/</g,'&lt;')}</td>
+            <td class="price">${fmt(it.price)}</td>
+            <td class="subt mono">${fmt(subt)}</td>
+          </tr>`;
+      }).join('');
+
+      return `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Bon ${receiptNo}</title>
+  <style>
+    @page { size: 80mm auto; margin: 4mm 4mm; }
+    *{box-sizing:border-box}
+    body{
+      font:11px/1.25 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+      color:#000;
+    }
+    .ticket{width:72mm;max-width:72mm;margin:0 auto}
+    .center{text-align:center}
+    .right{text-align:right}
+    .muted{color:#555}
+    .logo{display:block;width:54mm;margin:0 auto 8px;filter:grayscale(100%)}
+    h1{font-size:14px;margin:0 0 6px;text-align:center}
+    .small{font-size:10px}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+    .row{display:flex;justify-content:space-between}
+    hr{border:0;border-top:1px dashed #000;margin:6px 0}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:2px 0;vertical-align:top}
+    th{text-align:left;font-weight:700}
+    .sku{width:12mm;font-size:9px;white-space:pre}
+    .qty{width:7mm;text-align:left;padding-left:2px}
+    .desc{width:27mm;padding-right:2mm}
+    .price{width:11mm;text-align:right}
+    .subt{width:13mm;text-align:right}
+    .total{font-size:13px;font-weight:700}
+    .qr{width:36mm;margin:6px auto 0}
+    .barcode{width:60mm;margin:6px auto 0;display:block}
+    @media print{.noprint{display:none!important}}
+  </style>
+</head>
+<body>
+  <div class="ticket">
+    ${BRAND.logoUrl ? `<img class="logo" src="${BRAND.logoUrl}" alt="logo">` : ''}
+    <h1>${BRAND.name || ''}</h1>
+    <div class="center small muted">${BRAND.line1 || ''} • ${BRAND.line2 || ''}</div>
+    <div class="center small muted">${BRAND.phone || ''} • ${BRAND.email || ''}</div>
+    <div class="center small muted">BTW: ${BRAND.vat || '-'} • KvK: ${BRAND.kvk || '-'}</div>
+
+    <hr>
+    <div class="row small">
+      <div>Betaalwijze: ${payMethod}</div>
+      <div class="right">${dateString}</div>
+    </div>
+    ${customerEmail ? `<div class="small">Klant: ${customerEmail}</div>` : ''}
+
+    <hr>
+    <table>
+      <thead>
+        <tr>
+          <th class="sku">SKU</th>
+          <th class="qty">Aant.</th>
+          <th class="desc">Artikel</th>
+          <th class="price">Prijs</th>
+          <th class="subt">Subt.</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rowsHtml}
+      </tbody>
+    </table>
+
+    <hr>
+    <table>
+     ${opts.giftcard ? `
+        <tr>
+          <td class="right" colspan="5">
+            Cadeaubon: ${fmt(opts.giftcard.amount)} (${opts.giftcard.code})
+          </td>
+        </tr>
+      ` : ``}
+      ${discount > 0 ? `
+        <tr>
+          <td class="right" colspan="5">Subtotaal: ${fmt(subtotal)}</td>
+        </tr>
+        <tr>
+          <td class="right" colspan="5"><b>Korting: -${fmt(discount)}</b></td>
+        </tr>
+      ` : ``}
+      <tr>
+        <td class="right total" colspan="5">Totaal: ${fmt(total)}</td>
+      </tr>
+    </table>
+
+    ${BRAND.extra ? `<div class="small muted" style="margin-top:6px">${BRAND.extra}</div>` : ''}
+
+    <div class="center">
+      <img class="qr" src="${qrUrl}" alt="qr">
+    </div>
+    <div class="center small muted" style="margin-top:4px">
+      ${BRAND.webshopUrl || ''}
+    </div>
+
+    <img class="barcode" src="${code128Url}" alt="Bon ${receiptNo}">
+    <div class="center small muted" style="margin-top:6px">
+      Bedankt voor uw aankoop!
+    </div>
+    <div class="noprint center" style="margin-top:8px">
+      <button onclick="window.print()">Print</button>
+    </div>
+  </div>
+
+  ${autoPrintScript}
+  
+</body>
+</html>`;
+    }
+  </script>
+
+  <!-- ===== ANNULEER RETOUR MODAL ===== -->
+<div id="cancelReturnModal"
+     style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:200;">
+  <div style="background:#fff; max-width:360px; margin:25vh auto; padding:20px; border-radius:10px;">
+    <h3>Retour annuleren?</h3>
+    <p class="muted" style="margin:10px 0 16px;">
+      Weet je zeker dat je deze retour wilt annuleren?
+    </p>
+    <div style="display:flex; justify-content:space-between; gap:10px;">
+      <button class="btn" onclick="closeCancelReturnModal()">Nee</button>
+      <button class="btn btn-danger" onclick="confirmCancelReturn()">Ja, annuleren</button>
+    </div>
+  </div>
+</div>
+
+  <!-- ===== START SESSIE MODAL ===== -->
+<div id="startSessionModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:200;">
+  <div style="background:#fff; max-width:360px; margin:20vh auto; padding:20px; border-radius:10px;">
+    <h3>Vul start cash in</h3>
+    <input id="startCashInput" type="number" step="0.01"
+           style="width:100%; padding:10px; font-size:16px; margin:12px 0;">
+    <div style="display:flex; justify-content:space-between;">
+      <button class="btn" onclick="confirmStartSession(false)">Doorgaan zonder invullen</button>
+      <button class="btn btn-primary" onclick="confirmStartSession(true)">Doorgaan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== EIND SESSIE MODAL ===== -->
+<div id="endSessionModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:200;">
+  <div style="background:#fff; max-width:360px; margin:20vh auto; padding:20px; border-radius:10px;">
+    <h3>Vul eind cash in</h3>
+    <input id="endCashInput" type="number" step="0.01"
+           style="width:100%; padding:10px; font-size:16px; margin:12px 0;">
+    <div style="display:flex; justify-content:space-between;">
+      <button class="btn" onclick="confirmEndSession(false)">Doorgaan zonder invullen</button>
+      <button class="btn btn-primary" onclick="confirmEndSession(true)">Doorgaan</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
