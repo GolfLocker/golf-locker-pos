@@ -362,6 +362,13 @@ function apiVoorraadTellingFinish(opts){
   const id = CacheService.getUserCache().get(STOCKCOUNT_USERCACHE_KEY);
   _assert_(id, 'Geen actieve telling.');
 
+  // Zorg voor consistente response-structuur
+  const emptyArrays = {
+    scannedRows: [],
+    expectedRows: [],
+    resultRows: []
+  };
+
   const ssCount = _getOrCreateCountFile_();
   const shE = ssCount.getSheetByName('Expected');
   const shS = ssCount.getSheetByName('Scans');
@@ -448,9 +455,16 @@ function apiVoorraadTellingFinish(opts){
   // optioneel: blokkeren als er missing is
   if (missing.length && !opts.force){
     return {
-      ok:false,
-      tellingId:id,
+      ok: false,
+      tellingId: id,
       missingCount: missing.length,
+      missingItems: missing,
+
+      // 👇 ALTIJD AANWEZIG
+      scannedRows: [],
+      expectedRows: [],
+      resultRows: [],
+
       message: 'Er missen nog artikelen. Kies: verder tellen of toch afronden.'
     };
   }
@@ -459,11 +473,18 @@ function apiVoorraadTellingFinish(opts){
   CacheService.getUserCache().remove(STOCKCOUNT_USERCACHE_KEY);
 
   return {
-    ok:true,
-    tellingId:id,
+    ok: true,
+    tellingId: id,
     expectedCount: expected.length,
     foundCount: scannedOk.size,
     missingCount: missing.length,
+    missingItems: missing,
+
+    // 👇 ALTIJD AANWEZIG
+    scannedRows: scannedRows || [],
+    expectedRows: expected || [],
+    resultRows: resRows || [],
+
     soldScans,
     unknownScans
   };

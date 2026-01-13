@@ -483,6 +483,12 @@
     text-align: center;
   }
 
+  //////Voorraad tab styling/////
+  tr.ok    { background:#e8f5e9; }
+  tr.dup   { background:#fff3e0; }
+  tr.err   { background:#ffebee; }
+
+
 </style>
 </head>
 <body>
@@ -1067,6 +1073,33 @@
       document.getElementById('totalBig').textContent = euro(total);
       document.getElementById('total').textContent = euro(total);
     }
+
+    //tellingen
+    let tellingActive = false;
+    let tellingId = null;
+
+    // Verwachte SKU’s bij start telling (map: sku → info)
+    let tellingExpected = {};  
+
+    // Gescoorde scans (array, volgorde = scanvolgorde)
+    let tellingScanned = [];
+
+    function showMissingPopup(items){
+      if (!Array.isArray(items) || items.length === 0) return;
+
+      const lines = items.map(it =>
+        `• ${it.sku} (${it.tab}) – ${it.desc || ''}`
+      ).join('\n');
+
+      alert(
+        `Er missen ${items.length} artikelen:\n\n` +
+        lines +
+        `\n\nSluit dit venster om verder te scannen.`
+      );
+    }
+
+
+    /////////////////////////////////////////////functies///////////////////////////////////////////////////////
 
     function runWithTimeout(callFn, msg){
       msg = msg || 'Server reageert niet (timeout).';
@@ -1718,6 +1751,26 @@
 
   /** ===== TELLEN ===== */
 
+  function renderScanRow(sku, status, cls) {
+    const tr = document.createElement('tr');
+    tr.className = cls;
+    tr.innerHTML = `
+      <td>${sku}</td>
+      <td>${status}</td>
+    `;
+    document.getElementById('tellingList').prepend(tr);
+  }
+
+  function updateTellingCounter(remaining, scanned) {
+    document.getElementById('tellingCounter')
+      .textContent = `Gescoord: ${scanned} | Te gaan: ${remaining}`;
+  }
+
+  function focusScanInput() {
+    const el = document.getElementById('tellingSkuInput');
+    if (el) el.focus();
+  }
+
   function voorraadShowSub(key){
     const a = document.getElementById('voorraad-sub-inschrijven');
     const b = document.getElementById('voorraad-sub-tellen');
@@ -1751,6 +1804,75 @@
     `).join('');
   }
 
+  function voorraadHandleScan(rawSku) {
+    if (!tellingActive) return;
+
+    const sku = String(rawSku).trim();
+    if (!sku) return;
+
+    let status = '';
+    let colorClass = '';
+
+    if (tellingExpected[sku]) {
+      // ✅ correct, nog niet gescand
+      const item = tellingExpected[sku];
+      delete tellingExpected[sku];
+
+      tellingScanned.push(item);
+
+      status = 'KLOPT';
+      colorClass = 'ok';
+
+    } else if (tellingScanned.find(it => it.sku === sku)) {
+      // ⛔ al gescand
+      status = 'AL GESCAND';
+      colorClass = 'dup';
+
+    } else {
+      // ❓ onbekend / verkocht / fout
+      status = 'ONBEKEND';
+      colorClass = 'err';
+    }
+
+    renderScanRow(sku, status, colorClass);
+    updateTellingCounter(
+      Object.keys(tellingExpected).length,
+      tellingScanned.length
+    );
+
+    focusScanInput();
+  }
+/*
+  function voorraadStartTelling() {
+    if (tellingActive) return;
+
+    tellingExpected = {};
+    tellingScanned = [];
+    tellingActive = true;
+
+    // UI reset via bestaande structuur
+    const tb = document.querySelector('#tellenTable tbody');
+    if (tb) tb.innerHTML = '';
+
+    const meta = document.getElementById('tellenMeta');
+    if (meta) meta.textContent = 'Telling gestart…';
+
+    google.script.run
+      .withSuccessHandler(res => {
+        tellingId = res.tellingId;
+
+        res.items.forEach(it => {
+          tellingExpected[it.sku] = it;
+        });
+
+        if (meta) {
+          meta.textContent =
+            `Actief: ${tellingId} | Verwacht: ${Object.keys(tellingExpected).length}`;
+        }
+      })
+      .apiVoorraadTellingStart();
+  }
+*/
   function tellenStart(){
     const meta = document.getElementById('tellenMeta');
     const msg = document.getElementById('tellenMsg');
@@ -1802,6 +1924,10 @@
       .withSuccessHandler(res => {
         if (res && res.ok === false){
           msg.textContent = res.message || `Er missen nog items (${res.missingCount}).`;
+
+          if (res.missingItems && res.missingItems.length){
+            showMissingPopup(res.missingItems);
+          }
           return;
         }
         msg.textContent = `Afgerond. Found: ${res.foundCount} | Missing: ${res.missingCount} | Sold scans: ${res.soldScans} | Unknown: ${res.unknownScans}`;
