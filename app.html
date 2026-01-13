@@ -487,7 +487,63 @@
   tr.ok    { background:#e8f5e9; }
   tr.dup   { background:#fff3e0; }
   tr.err   { background:#ffebee; }
+  .receipt80{
+    width: 80mm;
+    font-family: monospace;
+    font-size: 12px;
+  }
 
+  .receipt80 .center{
+    text-align: center;
+  }
+
+  .receipt80 .bold{
+    font-weight: bold;
+  }
+
+  .receipt80 .small{
+    font-size: 10px;
+  }
+
+  .receipt80 .muted{
+    color: #777;
+  }
+
+  .receipt80 .hr{
+    border-top: 1px dashed #000;
+    margin: 6px 0;
+  }
+
+  .receipt80 .section{
+    margin-bottom: 6px;
+  }
+
+  .receipt80 .title{
+    font-weight: bold;
+    margin-bottom: 2px;
+  }
+
+  .receipt80 .r{
+    display: flex;
+    justify-content: space-between;
+    gap: 4px;
+    white-space: nowrap;
+  }
+
+  .receipt80 .sku{
+    width: 16mm;
+  }
+
+  .receipt80 .desc{
+    flex: 1;
+    font-size: 10px;
+    overflow: hidden;
+  }
+
+  .receipt80 .price{
+    width: 14mm;
+    text-align: right;
+  }
 
 </style>
 </head>
@@ -794,6 +850,7 @@
           <button class="btn primary" onclick="tellenStart()">Start telling</button>
           <button class="btn" onclick="tellenFinish(false)">Telling afronden</button>
           <button class="btn danger" onclick="tellenFinish(true)">Doorgaan (force)</button>
+          <button class="btn" onclick="printTelling()">Print telling</button>
           <div id="tellenMeta" class="muted"></div>
         </div>
 
@@ -1842,7 +1899,7 @@
 
     focusScanInput();
   }
-/*
+  /*
   function voorraadStartTelling() {
     if (tellingActive) return;
 
@@ -1872,7 +1929,7 @@
       })
       .apiVoorraadTellingStart();
   }
-*/
+  */
   function tellenStart(){
     const meta = document.getElementById('tellenMeta');
     const msg = document.getElementById('tellenMsg');
@@ -1930,6 +1987,9 @@
           }
           return;
         }
+
+        tellingId = res.tellingId;
+        
         msg.textContent = `Afgerond. Found: ${res.foundCount} | Missing: ${res.missingCount} | Sold scans: ${res.soldScans} | Unknown: ${res.unknownScans}`;
       })
       .withFailureHandler(err => {
@@ -1945,6 +2005,47 @@
     tellenRender();
   })();
 
+  function printTelling(){
+    if (!tellingId){
+      alert('Geen afgeronde telling om te printen.');
+      return;
+    }
+
+    google.script.run
+      .withSuccessHandler(data => {
+        const html = buildVoorraadReceipt80mm(data);
+
+        const w = window.open('', '_blank', 'width=400,height=600');
+        w.document.write(`
+          <html>
+            <head>
+              <title>Voorraadtelling ${data.header.tellingId}</title>
+              <style>
+                body{
+                  margin: 0;
+                  padding: 8px;
+                }
+                ${document.querySelector('style').innerHTML}
+              </style>
+            </head>
+            <body>
+              ${html}
+              <script>
+                window.onload = function(){
+                  window.print();
+                  setTimeout(() => window.close(), 500);
+                }
+              <\/script>
+            </body>
+          </html>
+        `);
+        w.document.close();
+      })
+      .withFailureHandler(err => {
+        alert(err && err.message ? err.message : err);
+      })
+      .apiVoorraadTellingReceipt(tellingId);
+  }
 
   // ===== SESSIE FRONTEND =====
   function euro(v){
@@ -3871,158 +3972,223 @@
       }).join('');
 
       return `<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>Bon ${receiptNo}</title>
-  <style>
-    @page { size: 80mm auto; margin: 4mm 4mm; }
-    *{box-sizing:border-box}
-    body{
-      font:11px/1.25 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
-      color:#000;
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Bon ${receiptNo}</title>
+          <style>
+            @page { size: 80mm auto; margin: 4mm 4mm; }
+            *{box-sizing:border-box}
+            body{
+              font:11px/1.25 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+              color:#000;
+            }
+            .ticket{width:72mm;max-width:72mm;margin:0 auto}
+            .center{text-align:center}
+            .right{text-align:right}
+            .muted{color:#555}
+            .logo{display:block;width:54mm;margin:0 auto 8px;filter:grayscale(100%)}
+            h1{font-size:14px;margin:0 0 6px;text-align:center}
+            .small{font-size:10px}
+            .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+            .row{display:flex;justify-content:space-between}
+            hr{border:0;border-top:1px dashed #000;margin:6px 0}
+            table{width:100%;border-collapse:collapse}
+            th,td{padding:2px 0;vertical-align:top}
+            th{text-align:left;font-weight:700}
+            .sku{width:12mm;font-size:9px;white-space:pre}
+            .qty{width:7mm;text-align:left;padding-left:2px}
+            .desc{width:27mm;padding-right:2mm}
+            .price{width:11mm;text-align:right}
+            .subt{width:13mm;text-align:right}
+            .total{font-size:13px;font-weight:700}
+            .qr{width:36mm;margin:6px auto 0}
+            .barcode{width:60mm;margin:6px auto 0;display:block}
+            @media print{.noprint{display:none!important}}
+          </style>
+        </head>
+        <body>
+          <div class="ticket">
+            ${BRAND.logoUrl ? `<img class="logo" src="${BRAND.logoUrl}" alt="logo">` : ''}
+            <h1>${BRAND.name || ''}</h1>
+            <div class="center small muted">${BRAND.line1 || ''} • ${BRAND.line2 || ''}</div>
+            <div class="center small muted">${BRAND.phone || ''} • ${BRAND.email || ''}</div>
+            <div class="center small muted">BTW: ${BRAND.vat || '-'} • KvK: ${BRAND.kvk || '-'}</div>
+
+            <hr>
+            <div class="row small">
+              <div>Betaalwijze: ${payMethod}</div>
+              <div class="right">${dateString}</div>
+            </div>
+            ${customerEmail ? `<div class="small">Klant: ${customerEmail}</div>` : ''}
+
+            <hr>
+            <table>
+              <thead>
+                <tr>
+                  <th class="sku">SKU</th>
+                  <th class="qty">Aant.</th>
+                  <th class="desc">Artikel</th>
+                  <th class="price">Prijs</th>
+                  <th class="subt">Subt.</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rowsHtml}
+              </tbody>
+            </table>
+
+            <hr>
+            <table>
+            ${opts.giftcard ? `
+                <tr>
+                  <td class="right" colspan="5">
+                    Cadeaubon: ${fmt(opts.giftcard.amount)} (${opts.giftcard.code})
+                  </td>
+                </tr>
+              ` : ``}
+              ${discount > 0 ? `
+                <tr>
+                  <td class="right" colspan="5">Subtotaal: ${fmt(subtotal)}</td>
+                </tr>
+                <tr>
+                  <td class="right" colspan="5"><b>Korting: -${fmt(discount)}</b></td>
+                </tr>
+              ` : ``}
+              <tr>
+                <td class="right total" colspan="5">Totaal: ${fmt(total)}</td>
+              </tr>
+            </table>
+
+            ${BRAND.extra ? `<div class="small muted" style="margin-top:6px">${BRAND.extra}</div>` : ''}
+
+            <div class="center">
+              <img class="qr" src="${qrUrl}" alt="qr">
+            </div>
+            <div class="center small muted" style="margin-top:4px">
+              ${BRAND.webshopUrl || ''}
+            </div>
+
+            <img class="barcode" src="${code128Url}" alt="Bon ${receiptNo}">
+            <div class="center small muted" style="margin-top:6px">
+              Bedankt voor uw aankoop!
+            </div>
+            <div class="noprint center" style="margin-top:8px">
+              <button onclick="window.print()">Print</button>
+            </div>
+          </div>
+
+          ${autoPrintScript}
+          
+        </body>
+      </html>`; 
     }
-    .ticket{width:72mm;max-width:72mm;margin:0 auto}
-    .center{text-align:center}
-    .right{text-align:right}
-    .muted{color:#555}
-    .logo{display:block;width:54mm;margin:0 auto 8px;filter:grayscale(100%)}
-    h1{font-size:14px;margin:0 0 6px;text-align:center}
-    .small{font-size:10px}
-    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
-    .row{display:flex;justify-content:space-between}
-    hr{border:0;border-top:1px dashed #000;margin:6px 0}
-    table{width:100%;border-collapse:collapse}
-    th,td{padding:2px 0;vertical-align:top}
-    th{text-align:left;font-weight:700}
-    .sku{width:12mm;font-size:9px;white-space:pre}
-    .qty{width:7mm;text-align:left;padding-left:2px}
-    .desc{width:27mm;padding-right:2mm}
-    .price{width:11mm;text-align:right}
-    .subt{width:13mm;text-align:right}
-    .total{font-size:13px;font-weight:700}
-    .qr{width:36mm;margin:6px auto 0}
-    .barcode{width:60mm;margin:6px auto 0;display:block}
-    @media print{.noprint{display:none!important}}
-  </style>
-</head>
-<body>
-  <div class="ticket">
-    ${BRAND.logoUrl ? `<img class="logo" src="${BRAND.logoUrl}" alt="logo">` : ''}
-    <h1>${BRAND.name || ''}</h1>
-    <div class="center small muted">${BRAND.line1 || ''} • ${BRAND.line2 || ''}</div>
-    <div class="center small muted">${BRAND.phone || ''} • ${BRAND.email || ''}</div>
-    <div class="center small muted">BTW: ${BRAND.vat || '-'} • KvK: ${BRAND.kvk || '-'}</div>
+  </script>
+  <script>
+    function clip(text, max){
+      text = String(text || '');
+      return text.length > max ? text.slice(0, max - 1) + '…' : text;
+    }
 
-    <hr>
-    <div class="row small">
-      <div>Betaalwijze: ${payMethod}</div>
-      <div class="right">${dateString}</div>
-    </div>
-    ${customerEmail ? `<div class="small">Klant: ${customerEmail}</div>` : ''}
+    function buildVoorraadReceipt80mm(data){
+      const h = data.header;
 
-    <hr>
-    <table>
-      <thead>
-        <tr>
-          <th class="sku">SKU</th>
-          <th class="qty">Aant.</th>
-          <th class="desc">Artikel</th>
-          <th class="price">Prijs</th>
-          <th class="subt">Subt.</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${rowsHtml}
-      </tbody>
-    </table>
+      const row = (a, b, c='') =>
+        `<div class="r">
+          <span class="sku">${a}</span>
+          <span class="desc">${clip(b,20)}</span>
+          ${c !== '' ? `<span class="price">${c}</span>` : ''}
+        </div>`;
 
-    <hr>
-    <table>
-     ${opts.giftcard ? `
-        <tr>
-          <td class="right" colspan="5">
-            Cadeaubon: ${fmt(opts.giftcard.amount)} (${opts.giftcard.code})
-          </td>
-        </tr>
-      ` : ``}
-      ${discount > 0 ? `
-        <tr>
-          <td class="right" colspan="5">Subtotaal: ${fmt(subtotal)}</td>
-        </tr>
-        <tr>
-          <td class="right" colspan="5"><b>Korting: -${fmt(discount)}</b></td>
-        </tr>
-      ` : ``}
-      <tr>
-        <td class="right total" colspan="5">Totaal: ${fmt(total)}</td>
-      </tr>
-    </table>
+      return `
+      <div class="receipt80">
+        <div class="center bold">GOLF LOCKER</div>
+        <div class="center small">${new Date(h.finishedAt).toLocaleString()}</div>
+        <div class="center small">Telling ${h.tellingId}</div>
 
-    ${BRAND.extra ? `<div class="small muted" style="margin-top:6px">${BRAND.extra}</div>` : ''}
+        <div class="hr"></div>
 
-    <div class="center">
-      <img class="qr" src="${qrUrl}" alt="qr">
-    </div>
-    <div class="center small muted" style="margin-top:4px">
-      ${BRAND.webshopUrl || ''}
-    </div>
+        <div class="small">
+          Expected: ${h.expectedCount}<br>
+          Counted: ${h.foundCount}
+        </div>
 
-    <img class="barcode" src="${code128Url}" alt="Bon ${receiptNo}">
-    <div class="center small muted" style="margin-top:6px">
-      Bedankt voor uw aankoop!
-    </div>
-    <div class="noprint center" style="margin-top:8px">
-      <button onclick="window.print()">Print</button>
-    </div>
-  </div>
+        <div class="hr"></div>
 
-  ${autoPrintScript}
-  
-</body>
-</html>`;
+        <div class="section">
+          <div class="title">GETELD</div>
+          ${data.counted.length
+            ? data.counted.map(x => row(x.sku, x.desc, '')).join('')
+            : `<div class="muted small">Geen</div>`
+          }
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="section">
+          <div class="title">MISSEND</div>
+          ${data.missing.length
+            ? data.missing.map(x => row(x.sku, x.desc, '')).join('')
+            : `<div class="muted small">Geen</div>`
+          }
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="section">
+          <div class="title">OVERIG</div>
+          ${data.other.length
+            ? data.other.map(x => row(x.sku || '-', x.desc)).join('')
+            : `<div class="muted small">Geen</div>`
+          }
+        </div>
+
+        <div class="hr"></div>
+        <div class="center small">— einde telling —</div>
+      </div>`;
     }
   </script>
 
+
   <!-- ===== ANNULEER RETOUR MODAL ===== -->
-<div id="cancelReturnModal"
-     style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:200;">
-  <div style="background:#fff; max-width:360px; margin:25vh auto; padding:20px; border-radius:10px;">
-    <h3>Retour annuleren?</h3>
-    <p class="muted" style="margin:10px 0 16px;">
-      Weet je zeker dat je deze retour wilt annuleren?
-    </p>
-    <div style="display:flex; justify-content:space-between; gap:10px;">
-      <button class="btn" onclick="closeCancelReturnModal()">Nee</button>
-      <button class="btn btn-danger" onclick="confirmCancelReturn()">Ja, annuleren</button>
+    <div id="cancelReturnModal"
+        style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:200;">
+      <div style="background:#fff; max-width:360px; margin:25vh auto; padding:20px; border-radius:10px;">
+        <h3>Retour annuleren?</h3>
+        <p class="muted" style="margin:10px 0 16px;">
+          Weet je zeker dat je deze retour wilt annuleren?
+        </p>
+        <div style="display:flex; justify-content:space-between; gap:10px;">
+          <button class="btn" onclick="closeCancelReturnModal()">Nee</button>
+          <button class="btn btn-danger" onclick="confirmCancelReturn()">Ja, annuleren</button>
+        </div>
+      </div>
     </div>
-  </div>
-</div>
 
-  <!-- ===== START SESSIE MODAL ===== -->
-<div id="startSessionModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:200;">
-  <div style="background:#fff; max-width:360px; margin:20vh auto; padding:20px; border-radius:10px;">
-    <h3>Vul start cash in</h3>
-    <input id="startCashInput" type="number" step="0.01"
-           style="width:100%; padding:10px; font-size:16px; margin:12px 0;">
-    <div style="display:flex; justify-content:space-between;">
-      <button class="btn" onclick="confirmStartSession(false)">Doorgaan zonder invullen</button>
-      <button class="btn btn-primary" onclick="confirmStartSession(true)">Doorgaan</button>
+      <!-- ===== START SESSIE MODAL ===== -->
+    <div id="startSessionModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:200;">
+      <div style="background:#fff; max-width:360px; margin:20vh auto; padding:20px; border-radius:10px;">
+        <h3>Vul start cash in</h3>
+        <input id="startCashInput" type="number" step="0.01"
+              style="width:100%; padding:10px; font-size:16px; margin:12px 0;">
+        <div style="display:flex; justify-content:space-between;">
+          <button class="btn" onclick="confirmStartSession(false)">Doorgaan zonder invullen</button>
+          <button class="btn btn-primary" onclick="confirmStartSession(true)">Doorgaan</button>
+        </div>
+      </div>
     </div>
-  </div>
-</div>
 
-<!-- ===== EIND SESSIE MODAL ===== -->
-<div id="endSessionModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:200;">
-  <div style="background:#fff; max-width:360px; margin:20vh auto; padding:20px; border-radius:10px;">
-    <h3>Vul eind cash in</h3>
-    <input id="endCashInput" type="number" step="0.01"
-           style="width:100%; padding:10px; font-size:16px; margin:12px 0;">
-    <div style="display:flex; justify-content:space-between;">
-      <button class="btn" onclick="confirmEndSession(false)">Doorgaan zonder invullen</button>
-      <button class="btn btn-primary" onclick="confirmEndSession(true)">Doorgaan</button>
+    <!-- ===== EIND SESSIE MODAL ===== -->
+    <div id="endSessionModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:200;">
+      <div style="background:#fff; max-width:360px; margin:20vh auto; padding:20px; border-radius:10px;">
+        <h3>Vul eind cash in</h3>
+        <input id="endCashInput" type="number" step="0.01"
+              style="width:100%; padding:10px; font-size:16px; margin:12px 0;">
+        <div style="display:flex; justify-content:space-between;">
+          <button class="btn" onclick="confirmEndSession(false)">Doorgaan zonder invullen</button>
+          <button class="btn btn-primary" onclick="confirmEndSession(true)">Doorgaan</button>
+        </div>
+      </div>
     </div>
-  </div>
-</div>
-</body>
+  </body>
 </html>

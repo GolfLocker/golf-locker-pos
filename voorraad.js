@@ -214,6 +214,62 @@ function apiVoorraadListRecent(limit) {
 
 /** ===== Voorraad: Tellen (met apart bestand) ===== */
 
+function _initTellingSpreadsheet_(ss){
+  const sheets = ss.getSheets();
+
+  // 1️⃣ Gebruik eerste sheet als Tellingen
+  const shT = sheets[0];
+  shT.setName('Tellingen');
+  shT.clearContents();
+  shT.getRange(1,1,1,8).setValues([[
+    'TellingID','StartedAt','FinishedAt','ExpectedCount',
+    'FoundCount','MissingCount','SoldScans','UnknownScans'
+  ]]);
+
+  // 2️⃣ Verwijder eventuele extra sheets (veilig)
+  for (let i = sheets.length - 1; i > 0; i--){
+    ss.deleteSheet(sheets[i]);
+  }
+
+  // 3️⃣ Voeg overige tabs toe
+  const exp = ss.insertSheet('Expected');
+  exp.getRange(1,1,1,8).setValues([[
+    'TellingID','SKU','Tab','Row','Omschrijving','Partij','Verkoopprijs','Status'
+  ]]);
+
+  const scans = ss.insertSheet('Scans');
+  scans.getRange(1,1,1,8).setValues([[
+    'TellingID','ScannedAt','SKU','Status','Tab','Row','Omschrijving','Extra'
+  ]]);
+
+  const res = ss.insertSheet('Result');
+  res.getRange(1,1,1,8).setValues([[
+    'TellingID','Type','SKU','Tab','Row','Omschrijving','Status','Extra'
+  ]]);
+}
+
+
+
+function _getVoorraadTellingFolder_(){
+  const ROOT_NAME = 'Golf Locker B.V.';
+  const YEAR_NAME = '2026';
+  const TELLING_NAME = 'Voorraadtellingen';
+
+  function getOrCreate(parent, name){
+    const it = parent.getFoldersByName(name);
+    return it.hasNext() ? it.next() : parent.createFolder(name);
+  }
+
+  const root = DriveApp.getFoldersByName(ROOT_NAME).hasNext()
+    ? DriveApp.getFoldersByName(ROOT_NAME).next()
+    : DriveApp.createFolder(ROOT_NAME);
+
+  const year = getOrCreate(root, YEAR_NAME);
+  const telling = getOrCreate(year, TELLING_NAME);
+
+  return telling;
+}
+
 function _getOrCreateCountFile_(){
   const props = PropertiesService.getDocumentProperties();
   let id = props.getProperty(STOCKCOUNT_PROP_FILE_ID);
@@ -291,7 +347,17 @@ function apiVoorraadTellingStart(){
     });
   });
 
-  const ssCount = _getOrCreateCountFile_();
+  const folder = _getVoorraadTellingFolder_();
+
+  const dateStr = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd');
+  const fileName = `Golf Locker Voorraadtelling ${dateStr}`;
+
+  const ssCount = SpreadsheetApp.create(fileName);
+  DriveApp.getFileById(ssCount.getId()).moveTo(folder);
+
+  // 👇 ESSENTIEEL
+  _initTellingSpreadsheet_(ssCount);
+
 
   // Log telling
   const shT = ssCount.getSheetByName('Tellingen');
@@ -305,6 +371,9 @@ function apiVoorraadTellingStart(){
 
   // Zet active telling in user cache
   CacheService.getUserCache().put(STOCKCOUNT_USERCACHE_KEY, id, 60 * 60 * 6); // 6 uur
+  CacheService.getUserCache().put(STOCKCOUNT_USERCACHE_KEY + '_FILE', ssCount.getId(), 60 * 60 * 6);
+
+
 
   return { ok:true, tellingId:id, expectedCount: expectedRows.length };
 }
@@ -343,8 +412,12 @@ function apiVoorraadTellingScan(sku){
     if (found) break;
   }
 
-  const ssCount = _getOrCreateCountFile_();
+  const fileId = CacheService.getUserCache().get(STOCKCOUNT_USERCACHE_KEY + '_FILE');
+  _assert_(fileId, 'Tellingbestand niet gevonden.');
+
+  const ssCount = SpreadsheetApp.openById(fileId);
   const shS = ssCount.getSheetByName('Scans');
+
 
   const now = new Date();
   if (!found){
@@ -362,6 +435,8 @@ function apiVoorraadTellingFinish(opts){
   const id = CacheService.getUserCache().get(STOCKCOUNT_USERCACHE_KEY);
   _assert_(id, 'Geen actieve telling.');
 
+  const dbg = { idFromCache: id };
+
   // Zorg voor consistente response-structuur
   const emptyArrays = {
     scannedRows: [],
@@ -369,7 +444,11 @@ function apiVoorraadTellingFinish(opts){
     resultRows: []
   };
 
-  const ssCount = _getOrCreateCountFile_();
+  const fileId = CacheService.getUserCache().get(STOCKCOUNT_USERCACHE_KEY + '_FILE');
+  _assert_(fileId, 'Tellingbestand niet gevonden.');
+
+  const ssCount = SpreadsheetApp.openById(fileId);
+
   const shE = ssCount.getSheetByName('Expected');
   const shS = ssCount.getSheetByName('Scans');
   const shR = ssCount.getSheetByName('Result');
@@ -377,6 +456,8 @@ function apiVoorraadTellingFinish(opts){
 
   const expVals = shE.getDataRange().getValues();   // incl header
   const scanVals = shS.getDataRange().getValues();  // incl header
+  dbg.expectedRowsTotal = expVals.length - 1;
+
 
   // Expected set
   const expected = [];
@@ -459,6 +540,8 @@ function apiVoorraadTellingFinish(opts){
       tellingId: id,
       missingCount: missing.length,
       missingItems: missing,
+      debug: dbg,
+
 
       // 👇 ALTIJD AANWEZIG
       scannedRows: [],
@@ -471,6 +554,7 @@ function apiVoorraadTellingFinish(opts){
 
   // afsluiten
   CacheService.getUserCache().remove(STOCKCOUNT_USERCACHE_KEY);
+  debug: dbg
 
   return {
     ok: true,
@@ -479,6 +563,8 @@ function apiVoorraadTellingFinish(opts){
     foundCount: scannedOk.size,
     missingCount: missing.length,
     missingItems: missing,
+    debug: dbg,
+
 
     // 👇 ALTIJD AANWEZIG
     scannedRows: scannedRows || [],
@@ -487,6 +573,78 @@ function apiVoorraadTellingFinish(opts){
 
     soldScans,
     unknownScans
+  };
+}
+
+function apiVoorraadTellingReceipt(tellingId){
+  _assert_(tellingId, 'TellingID ontbreekt.');
+
+  const ssId = CacheService.getUserCache().get(STOCKCOUNT_USERCACHE_KEY + '_FILE');
+  _assert_(ssId, 'Tellingbestand niet gevonden.');
+
+  const ss = SpreadsheetApp.openById(ssId);
+  const shR = ss.getSheetByName('Result');
+  const shT = ss.getSheetByName('Tellingen');
+
+  _assert_(shR && shT, 'Result/Tellingen sheet ontbreekt.');
+
+  const resVals = shR.getDataRange().getValues();
+  const tVals   = shT.getDataRange().getValues();
+
+  // --- header info ---
+  let header = null;
+  for (let i = 1; i < tVals.length; i++){
+    if (String(tVals[i][0]) === tellingId){
+      header = {
+        tellingId,
+        startedAt: tVals[i][1],
+        finishedAt: tVals[i][2],
+        expectedCount: Number(tVals[i][3]) || 0,
+        foundCount: Number(tVals[i][4]) || 0,
+        missingCount: Number(tVals[i][5]) || 0
+      };
+      break;
+    }
+  }
+  _assert_(header, 'Telling niet gevonden.');
+
+  // --- result regels ---
+  const seen = new Set();
+  const counted = [];
+  const missing = [];
+  const other   = [];
+
+  for (let i = 1; i < resVals.length; i++){
+    const r = resVals[i];
+    if (String(r[0]) !== tellingId) continue;
+
+    const sku = String(r[2] || '').trim();
+    if (seen.has(sku)) continue;   // 👈 DEDUPE
+    seen.add(sku);
+
+    const row = {
+      sku,
+      tab: r[3] || '',
+      desc: r[5] || '',
+      status: r[6] || '',
+      extra: r[7] || ''
+    };
+
+    if (r[1] === 'GETELD' && row.status === 'KLOPT'){
+      counted.push(row);
+    } else if (r[1] === 'MISSEND'){
+      missing.push(row);
+    } else {
+      other.push(row);
+    }
+  }
+
+  return {
+    ok: true,
+    header,
+    counted,
+    missing,
+    other
   };
 }
 
