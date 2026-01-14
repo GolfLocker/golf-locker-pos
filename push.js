@@ -1,7 +1,7 @@
 const PUSHOVER_USERS = [
-  'uitgihsqoui9hjppdm54491bu1howh',   ////Danilo
-  'u5eappra662knm6j9ngdvbv3a9e5ru',   ////Menno
-  'uyanzyyvcd3t7rjprg9n5rgmg1i1n5'   ////Werk telefoon
+  '',   ////Danilo
+  '',   ////Menno
+  ''   ////Werk telefoon
 ];
 
 const PUSHOVER_APP_TOKEN = 'a9ojzf33y6msiuf491xfz75ma268b6';
