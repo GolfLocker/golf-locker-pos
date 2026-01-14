@@ -1332,13 +1332,13 @@
       );
     }
 
-    function setTellenStatus(msg, type = 'info') {
+    /*function setTellenStatus(msg, type = 'info') {
       const el = document.getElementById('tellenStatus');
       if (!el) return;
 
       el.textContent = msg;
       el.className = `tellen-status ${type}`;
-    }
+    }*/
 
     function updateTellenButtons(active) {
       const btnStart  = document.querySelector('[onclick="tellenStart()"]');
@@ -1365,6 +1365,37 @@
         scanInput.value = '';
       }
     }
+
+    function clearActiveTellingUi() {
+      tellenActiveId = null;
+
+      // Meta resetten
+      const meta = document.getElementById('tellenMeta');
+      if (meta) meta.textContent = '';
+
+      // Knoppen & scanbar uit
+      updateTellenButtons(false);
+
+      const inp = document.getElementById('tellenSku');
+      if (inp) inp.disabled = true;
+    }
+
+    function setTellenStatus(msg, type = 'info', autoHideMs = 10000) {
+      const el = document.getElementById('tellenMsg');
+      if (!el) return;
+
+      el.textContent = msg;
+      el.className = `tellen-status ${type}`;
+      el.style.display = 'block';
+
+      if (autoHideMs) {
+        setTimeout(() => {
+          el.style.display = 'none';
+        }, autoHideMs);
+      }
+    }
+
+
 
     /////////////////////////////////////////////functies///////////////////////////////////////////////////////
 
@@ -2072,7 +2103,7 @@
     }
 
     tb.innerHTML = tellenState.map((x, i) => `
-      <tr class="${i === tellenState.length - 1 ? 'scan-new' : ''}">
+      <tr class="${i === 0 ? 'scan-new' : ''}">
         <td>${x.sku}</td>
         <td>${x.tab || ''}</td>
         <td>${x.desc || ''}</td>
@@ -2229,12 +2260,13 @@
         tellingId = res.tellingId;
 
         // ✅ STATUS TEKST
-        msg.textContent =
-          `Afgerond. Found: ${res.foundCount} | Missing: ${res.missingCount} | Sold scans: ${res.soldScans} | Unknown: ${res.unknownScans}`;
+        msg.textContent=
+          `Afgerond. Found: ${res.foundCount} | Missing: ${res.missingCount} | Sold scans: ${res.soldScans} | Unknown: ${res.unknownScans}`,
       
         setTellenStatus(
           `Afgerond. Found: ${res.foundCount} | Missing: ${res.missingCount} | Sold scans: ${res.soldScans} | Unknown: ${res.unknownScans}`,
-          'success'
+          'success',
+        10000 // ⏱️ 10 seconden
         );
 
 
@@ -2243,6 +2275,7 @@
         // ============================
         tellenState.length = 0;
         tellenRender();
+        clearActiveTellingUi();  
 
         const input = document.getElementById('tellenSku');
         if (input) input.value = '';

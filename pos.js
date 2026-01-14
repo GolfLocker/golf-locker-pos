@@ -196,6 +196,19 @@ function _build80mmTicketHtml_(opts) {
 </html>`;
 }
 
+function buildItemsText_(items) {
+  if (!Array.isArray(items) || !items.length) return '';
+
+  return items
+    .map(it => {
+      const qty = Number(it.qty || 1);
+      const name = it.desc || it.sku;
+      return qty > 1
+        ? `• ${qty}× ${name}`
+        : `• ${name}`;
+    })
+    .join('\n');
+}
 
 /** ================== WEB ENTRY (PWA + TICKET) ================== **/
 
@@ -1154,6 +1167,17 @@ function apiBookAndReceipt(payMethod, customerEmail) {
       // bewust niet crashen, maar wel loggen
       Logger.log('Giftcard issue failed: ' + e.message);
     }
+
+    const itemsText = buildItemsText_(itemsSold);
+
+    sendPush(
+      'Nieuwe verkoop 💰',
+      `Bon ${receiptNo}
+    Betaalwijze: ${payMethod}
+    Totaal: € ${total.toFixed(2)}
+    Artikel(en): ${itemsText}`
+    );
+
 
     // front-end gebruikt ticketUrl voor directe (live) 80mm-print
     return { total, receiptNo, ticketUrl, itemsSold };

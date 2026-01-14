@@ -3,6 +3,20 @@
  *  Sheet: "Codes"
  *  ============================ */
 
+function buildItemsText_(items) {
+  if (!Array.isArray(items) || !items.length) return '';
+
+  return items
+    .map(it => {
+      const qty = Number(it.qty || 1);
+      const name = it.desc || it.sku;
+      return qty > 1
+        ? `• ${qty}× ${name}`
+        : `• ${name}`;
+    })
+    .join('\n');
+}
+
 function apiCodeLookup(codeRaw) {
   try {
     const code = _normCode_(codeRaw);
@@ -555,6 +569,17 @@ function apiBookWithDiscountNet(payMethod, customerEmail) {
     apiClearDiscount();
     apiClearGiftcard(); 
     invalidateSkuIndex_();
+
+    const itemsText = buildItemsText_(itemsSold);
+
+    sendPush(
+      'Nieuwe verkoop 💰',
+      `Bon ${receiptNo}
+    Betaalwijze: ${payMethod}
+    Totaal: € ${total.toFixed(2)}
+    Artikel(en): ${itemsText}`
+    );
+
 
     return {
       pdfUrl,
