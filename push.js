@@ -4,7 +4,7 @@ const PUSHOVER_USERS = [
   ''   ////Werk telefoon
 ];
 
-const PUSHOVER_APP_TOKEN = 'a9ojzf33y6msiuf491xfz75ma268b6';
+const PUSHOVER_APP_TOKEN = '';
 
 function sendPush(title, message) {
   PUSHOVER_USERS.forEach(userKey => {
