@@ -610,6 +610,92 @@
     background: var(--accent-light);
   }
 
+  /* Voorraad telling tabel */
+  #tellenTable th {
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  #tellenTable td {
+    font-size: 14px;
+    padding: 8px 10px;
+  }
+
+  #tellenTable td:nth-child(3) {
+    color: var(--text);
+  }
+
+  #tellenTable tbody tr {
+    transition: background .1s;
+  }
+
+  .status {
+    display: inline-block;
+    padding: 3px 8px;
+    font-size: 12px;
+    border-radius: 999px;
+    font-weight: 600;
+  }
+
+  .status-ok {
+    background: #e8f5e9;
+    color: #1b5e20;
+  }
+
+  .status-sold {
+    background: #fff3e0;
+    color: #e65100;
+  }
+
+  .status-unknown {
+    background: #ffebee;
+    color: #b71c1c;
+  }
+
+  .tellen-status {
+    margin-top: 10px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .tellen-status.info {
+    background: #eef2ff;
+    color: #1e3a8a;
+  }
+
+  .tellen-status.warn {
+    background: #fff7ed;
+    color: #9a3412;
+  }
+
+  .tellen-status.success {
+    background: #e8f5e9;
+    color: #1b5e20;
+  }
+
+  .tellen-status.hidden {
+    display: none;
+  }
+
+  #tellenSku:disabled {
+    background: #f3f4f6;
+    color: var(--muted);
+    cursor: not-allowed;
+  }
+
+  /* Subtiele highlight bij nieuwe scan */
+  @keyframes scanHighlight {
+    0%   { background-color: rgba(41,121,0,0.18); }
+    100% { background-color: transparent; }
+  }
+
+  tr.scan-new {
+    animation: scanHighlight 1.2s ease-out;
+  }
+
+
 </style>
 </head>
 <body>
@@ -930,17 +1016,26 @@
       <div id="voorraad-sub-tellen" style="display:none;">
         <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
           <button class="btn primary" onclick="tellenStart()">Start telling</button>
-          <button class="btn" onclick="tellenFinish(false)">Telling afronden</button>
-          <button class="btn danger" onclick="tellenFinish(true)">Doorgaan (force)</button>
-          <button class="btn" onclick="printTelling()">Print telling</button>
+          <button class="btn" id="btnTellenFinish" onclick="tellenFinish(false)">Telling afronden</button>
+          <button class="btn danger" id="btnTellenForce" onclick="tellenFinish(true)">Doorgaan (force)</button>
+          <!---<button class="btn" onclick="printTelling()">Print telling</button>--->
           <div id="tellenMeta" class="muted"></div>
         </div>
 
-        <div style="margin-top:10px;">
-          <label>Scan/typ SKU</label>
-          <input id="tellenSku" class="pill" type="text" placeholder="Scan of typ SKU en druk Enter" onkeydown="if(event.key==='Enter'){tellenScan();}" />
-          <button class="btn" onclick="tellenScan()">Toevoegen</button>
+        <div id="tellenStatus" class="tellen-status hidden"></div>
+
+        <div class="scanbar" id="tellenScanbar" style="margin-top:12px;">
+          <input
+            id="tellenSku"
+            class="pill"
+            type="text"
+            placeholder="Scan of typ SKU"
+            onkeydown="if(event.key==='Enter'){tellenScan();}"
+            autofocus
+          />
+          <button class="btn btn-primary" onclick="tellenScan()">Toevoegen</button>
         </div>
+
 
         <div style="margin-top:10px;" class="table-wrap">
           <table class="table" id="tellenTable">
@@ -1237,6 +1332,39 @@
       );
     }
 
+    function setTellenStatus(msg, type = 'info') {
+      const el = document.getElementById('tellenStatus');
+      if (!el) return;
+
+      el.textContent = msg;
+      el.className = `tellen-status ${type}`;
+    }
+
+    function updateTellenButtons(active) {
+      const btnStart  = document.querySelector('[onclick="tellenStart()"]');
+      const btnFinish = document.getElementById('btnTellenFinish');
+      const btnForce  = document.getElementById('btnTellenForce');
+
+      const scanbar   = document.getElementById('tellenScanbar');
+      const scanInput = document.getElementById('tellenSku');
+
+      // Start-knop
+      if (btnStart) {
+        btnStart.style.display = active ? 'none' : 'inline-block';
+      }
+
+      // Afrond-knoppen
+      if (btnFinish) btnFinish.style.display = active ? 'inline-block' : 'none';
+      if (btnForce)  btnForce.style.display  = active ? 'inline-block' : 'none';
+
+      // Scanbar
+      if (scanbar) scanbar.style.display = active ? 'flex' : 'none';
+
+      // Input reset
+      if (!active && scanInput) {
+        scanInput.value = '';
+      }
+    }
 
     /////////////////////////////////////////////functies///////////////////////////////////////////////////////
 
@@ -1924,6 +2052,13 @@
 
     document.getElementById('subtab-tellen')
       .classList.toggle('active', name === 'tellen');
+    // 🔑 alleen relevant voor TELLEN
+    if (name === 'tellen') {
+      const hasActiveTelling =
+        Array.isArray(tellenState) && tellenState.length > 0;
+
+      updateTellenButtons(hasActiveTelling);
+    }
   }
 
   const tellenState = []; // client-only lijst om te tonen
@@ -1935,14 +2070,28 @@
       tb.innerHTML = `<tr><td colspan="4" class="muted">Nog niets gescand.</td></tr>`;
       return;
     }
-    tb.innerHTML = tellenState.map(x => `
-      <tr>
+
+    tb.innerHTML = tellenState.map((x, i) => `
+      <tr class="${i === tellenState.length - 1 ? 'scan-new' : ''}">
         <td>${x.sku}</td>
         <td>${x.tab || ''}</td>
         <td>${x.desc || ''}</td>
-        <td>${x.status || ''}</td>
+        <td>
+            <span class="status ${
+              x.status === 'KLOPT' ? 'status-ok' :
+              x.status === 'AL_VERKOCHT' ? 'status-sold' :
+              x.status === 'ONBEKEND' ? 'status-unknown' : ''
+            }">
+              ${x.status || ''}
+            </span>
+          </td>
       </tr>
     `).join('');
+
+    setTimeout(() => {
+      const last = tb.querySelector('tr.scan-new');
+      if (last) last.classList.remove('scan-new');
+    }, 1300);
   }
 
   function voorraadHandleScan(rawSku) {
@@ -2025,6 +2174,7 @@
     google.script.run
       .withSuccessHandler(res => {
         meta.textContent = res && res.tellingId ? `Actief: ${res.tellingId} (expected: ${res.expectedCount})` : 'Gestart';
+        updateTellenButtons(true);
       })
       .withFailureHandler(err => {
         meta.textContent = (err && err.message) ? err.message : err;
@@ -2063,8 +2213,12 @@
 
     google.script.run
       .withSuccessHandler(res => {
-        if (res && res.ok === false){
-          msg.textContent = res.message || `Er missen nog items (${res.missingCount}).`;
+        if (res.ok === false && res.missingCount) {
+            msg.textContent = res.message || `Er missen nog items (${res.missingCount}).`;
+            setTellenStatus(
+              `Er missen nog artikelen (${res.missingCount}). Kies: verder tellen of toch afronden.`,
+              'warn'
+            );
 
           if (res.missingItems && res.missingItems.length){
             showMissingPopup(res.missingItems);
@@ -2077,6 +2231,12 @@
         // ✅ STATUS TEKST
         msg.textContent =
           `Afgerond. Found: ${res.foundCount} | Missing: ${res.missingCount} | Sold scans: ${res.soldScans} | Unknown: ${res.unknownScans}`;
+      
+        setTellenStatus(
+          `Afgerond. Found: ${res.foundCount} | Missing: ${res.missingCount} | Sold scans: ${res.soldScans} | Unknown: ${res.unknownScans}`,
+          'success'
+        );
+
 
         // ============================
         // ✅ 1. FLUSH TELLING UI
@@ -2091,6 +2251,7 @@
         // ✅ 2. AUTO PRINT
         // ============================
         printTelling();
+        updateTellenButtons(false);
       })
       .withFailureHandler(err => {
         msg.textContent = (err && err.message) ? err.message : err;
