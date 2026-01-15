@@ -942,6 +942,12 @@
           </button>
 
           <button class="subtab-btn"
+            id="subtab-zoeken"
+            onclick="voorraadShowSub('zoeken')">
+            Zoeken
+          </button>
+
+          <button class="subtab-btn"
             id="subtab-tellen"
             onclick="voorraadShowSub('tellen')">
             Tellen
@@ -1012,6 +1018,68 @@
         </div>
       </div>
 
+      <div class="panel" id="voorraad-sub-zoeken" style="display:none;">
+        <h3 style="margin-top:0;">Voorraad zoeken</h3>
+
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
+          <div style="flex:2; min-width:240px; position:relative;">
+            <label>Zoek (SKU / omschrijving / partij / kanaal)</label>
+            <input id="voorraadSearchInput" class="pill" placeholder="Typ om te zoeken..." />
+
+            <!-- live dropdown (type-ahead) -->
+            <div id="voorraadSearchSuggest"
+              style="position:absolute; left:0; right:0; top:78px; z-index:60; background:#fff; border:1px solid var(--border); border-radius:10px; display:none; overflow:hidden; box-shadow:0 8px 18px rgba(0,0,0,.08);">
+            </div>
+          </div>
+
+          <div style="flex:1; min-width:160px;">
+            <label>Status</label>
+            <select id="voorraadFilterStatus">
+              <option value="ALL" selected>Alles</option>
+              <option value="FREE">Alleen vrij</option>
+              <option value="SOLD">Alleen verkocht</option>
+            </select>
+          </div>
+
+          <div style="flex:1; min-width:160px;">
+            <label>Tab</label>
+            <select id="voorraadFilterTab">
+              <option value="ALL" selected>Alle tabs</option>
+              <option value="Clubs">Clubs</option>
+              <option value="Sets">Sets</option>
+              <option value="Tassen">Tassen</option>
+              <option value="Trolley's">Trolley's</option>
+              <option value="Overig">Overig</option>
+              <option value="Diensten">Diensten</option>
+            </select>
+          </div>
+
+          <button class="btn" onclick="voorraadSearchDo(true)">Zoek</button>
+        </div>
+
+        <div id="voorraadSearchMeta" class="muted" style="margin-top:10px;"></div>
+
+        <div class="table-wrap" style="margin-top:10px;">
+          <table class="table" id="voorraadSearchTable">
+            <thead>
+              <tr>
+                <th>SKU</th>
+                <th>Tab</th>
+                <th>Omschrijving</th>
+                <th class="right">Inkoop</th>
+                <th class="right">Verwacht</th>
+                <th>Status</th>
+                <th>Partij</th>
+                <th>Kanaal</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="voorraadSearchResults">
+              <tr><td colspan="9" class="muted">Typ om te zoeken…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       <div id="voorraad-sub-tellen" style="display:none;">
         <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
@@ -1050,6 +1118,7 @@
           </table>
         </div>
       </div>
+
     </div>
   </div>
 
@@ -2070,12 +2139,15 @@
   }
 
   function voorraadShowSub(name){
-    // views
+    // panels
     document.getElementById('voorraad-sub-inschrijven').style.display =
       name === 'inschrijven' ? 'block' : 'none';
 
     document.getElementById('voorraad-sub-tellen').style.display =
       name === 'tellen' ? 'block' : 'none';
+
+    const zoek = document.getElementById('voorraad-sub-zoeken');
+    if (zoek) zoek.style.display = (name === 'zoeken') ? 'block' : 'none';
 
     // buttons
     document.getElementById('subtab-inschrijven')
@@ -2083,14 +2155,25 @@
 
     document.getElementById('subtab-tellen')
       .classList.toggle('active', name === 'tellen');
-    // 🔑 alleen relevant voor TELLEN
-    if (name === 'tellen') {
-      const hasActiveTelling =
-        Array.isArray(tellenState) && tellenState.length > 0;
 
+    const btnZoek = document.getElementById('subtab-zoeken');
+    if (btnZoek) btnZoek.classList.toggle('active', name === 'zoeken');
+
+    // telling UI only relevant in tellen
+    if (name === 'tellen') {
+      const hasActiveTelling = Array.isArray(tellenState) && tellenState.length > 0;
       updateTellenButtons(hasActiveTelling);
     }
+
+    // focus search input when opening
+    if (name === 'zoeken') {
+      setTimeout(() => {
+        const inp = document.getElementById('voorraadSearchInput');
+        if (inp) inp.focus();
+      }, 50);
+    }
   }
+
 
   const tellenState = []; // client-only lijst om te tonen
 
@@ -2163,37 +2246,7 @@
 
     focusScanInput();
   }
-  /*
-  function voorraadStartTelling() {
-    if (tellingActive) return;
-
-    tellingExpected = {};
-    tellingScanned = [];
-    tellingActive = true;
-
-    // UI reset via bestaande structuur
-    const tb = document.querySelector('#tellenTable tbody');
-    if (tb) tb.innerHTML = '';
-
-    const meta = document.getElementById('tellenMeta');
-    if (meta) meta.textContent = 'Telling gestart…';
-
-    google.script.run
-      .withSuccessHandler(res => {
-        tellingId = res.tellingId;
-
-        res.items.forEach(it => {
-          tellingExpected[it.sku] = it;
-        });
-
-        if (meta) {
-          meta.textContent =
-            `Actief: ${tellingId} | Verwacht: ${Object.keys(tellingExpected).length}`;
-        }
-      })
-      .apiVoorraadTellingStart();
-  }
-  */
+  
   function tellenStart(){
     const meta = document.getElementById('tellenMeta');
     const msg = document.getElementById('tellenMsg');
@@ -2292,10 +2345,365 @@
       .apiVoorraadTellingFinish({ force: !!force });
   }
 
+  // ===== VOORRAAD SEARCH — STAP 2B-1 (state only) =====
+  var _voorraadSearchTimer = null;
+  var _voorraadSearchReqId = 0;
+  var _voorraadLastItems = [];
+  var _voorraadEditCtx = null;
+
+  function voorraadSearchInit(){
+    var inp = document.getElementById('voorraadSearchInput');
+    if (!inp) return;
+
+    console.log('[voorraadSearchInit] ready');
+
+    inp.addEventListener('input', function(){
+      if (_voorraadSearchTimer) {
+        clearTimeout(_voorraadSearchTimer);
+      }
+
+      _vorraadSearchTimer = setTimeout(function(){
+      var q = (inp.value || '').trim();
+
+      // 🔹 te kort → niets doen
+      if (q.length < 2){
+        voorraadHideSuggest();
+        voorraadRenderResults([]);
+        var meta = document.getElementById('voorraadSearchMeta');
+        if (meta) meta.textContent = '';
+        return;
+      }
+
+        var statusEl = document.getElementById('voorraadFilterStatus');
+        var tabEl    = document.getElementById('voorraadFilterTab');
+
+        var status = statusEl ? statusEl.value : 'ALL';
+        var tab    = tabEl ? tabEl.value : 'ALL';
+
+        google.script.run
+          .withSuccessHandler(function(res){
+            if (!res || !res.ok) return;
+
+            var items = res.items || [];
+
+            voorraadShowSuggest(items);
+            voorraadRenderResults(items);
+          })
+          .withFailureHandler(function(err){
+            console.error('[voorraadSearch] error', err);
+          })
+          .apiVoorraadSearch({
+            q: q,
+            status: status,
+            tab: tab,
+            limit: 50
+          });
+      }, 180);
+    });
+
+    inp.addEventListener('keydown', function(e){
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        voorraadSearchDo(true);
+      }
+
+      if (e.key === 'Escape') {
+        inp.value = '';
+        voorraadHideSuggest();
+        voorraadRenderResults([]);
+        var meta = document.getElementById('voorraadSearchMeta');
+        if (meta) meta.textContent = '';
+      }
+    });
+
+    document.addEventListener('click', function(e){
+      var sug = document.getElementById('voorraadSearchSuggest');
+      if (!sug) return;
+      if (e.target === inp || sug.contains(e.target)) return;
+      voorraadHideSuggest();
+    });
+    var inp = document.getElementById('voorraadSearchInput');
+    if (inp) inp.focus();
+
+
+  }
+
+  function voorraadSearchDo(fromButton){
+    var inp = document.getElementById('voorraadSearchInput');
+    if (!inp) return;
+
+    var q = (inp.value || '').trim();
+    if (!q){
+      voorraadHideSuggest();
+      voorraadRenderResults([]);
+      return;
+    }
+
+    var statusEl = document.getElementById('voorraadFilterStatus');
+    var tabEl    = document.getElementById('voorraadFilterTab');
+
+    var status = statusEl ? statusEl.value : 'ALL';
+    var tab    = tabEl ? tabEl.value : 'ALL';
+
+    var meta = document.getElementById('voorraadSearchMeta');
+    if (meta) meta.textContent = 'Zoeken…';
+
+    google.script.run
+      .withSuccessHandler(function(res){
+        if (!res || !res.ok) return;
+
+        var items = res.items || [];
+        _voorraadLastItems = items;   // 👈 TOEVOEGEN
+
+        if (!fromButton){
+          voorraadShowSuggest(items);
+        } else {
+          voorraadHideSuggest();
+        }
+
+        voorraadRenderResults(items);
+      })
+      .withFailureHandler(function(err){
+        var m = err && err.message ? err.message : String(err);
+        console.error('[voorraadSearchDo]', m);
+        if (meta) meta.textContent = 'Fout bij zoeken';
+      })
+      .apiVoorraadSearch({
+        q: q,
+        status: status,
+        tab: tab,
+        limit: 50
+      });
+  }
+
+  function voorraadHideSuggest(){
+    var sug = document.getElementById('voorraadSearchSuggest');
+    if (sug) sug.style.display = 'none';
+  }
+
+  function voorraadShowSuggest(items){
+    var sug = document.getElementById('voorraadSearchSuggest');
+    if (!sug) return;
+
+    if (!items || !items.length){
+      sug.style.display = 'none';
+      return;
+    }
+
+    // leegmaken
+    sug.innerHTML = '';
+
+    for (var i = 0; i < items.length; i++){
+      var it = items[i];
+
+      var row = document.createElement('div');
+      row.style.padding = '10px 12px';
+      row.style.borderBottom = '1px solid #eee';
+      row.style.cursor = 'pointer';
+
+      row.onclick = (function(sku){
+        return function(){
+          voorraadPickSuggest(sku);
+        };
+      })(it.sku);
+
+      var title = document.createElement('div');
+      title.style.fontWeight = '600';
+      title.textContent = it.sku;
+
+      var sub = document.createElement('div');
+      sub.className = 'muted';
+      sub.style.fontSize = '12px';
+      sub.textContent = it.desc;
+
+      row.appendChild(title);
+      row.appendChild(sub);
+      sug.appendChild(row);
+    }
+
+    // laatste border weg
+    if (sug.lastChild){
+      sug.lastChild.style.borderBottom = 'none';
+    }
+
+    sug.style.display = 'block';
+  }
+
+  function voorraadPickSuggest(sku){
+    var inp = document.getElementById('voorraadSearchInput');
+    if (inp) inp.value = sku;
+
+    voorraadHideSuggest();
+    console.log('[voorraadSuggest] picked:', sku);
+  }
+
+  function voorraadRenderResults(items){
+    if (meta) meta.textContent = 'Zoeken…';
+    var tbody = document.getElementById('voorraadSearchResults');
+    var meta  = document.getElementById('voorraadSearchMeta');
+
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+
+    if (!items || !items.length){
+      var tr = document.createElement('tr');
+      var td = document.createElement('td');
+      td.colSpan = 9;
+      td.className = 'muted';
+      td.textContent = 'Geen resultaten';
+      tr.appendChild(td);
+      tbody.appendChild(tr);
+
+      if (meta) meta.textContent = '0 resultaten';
+      return;
+    }
+
+    for (var i = 0; i < items.length; i++){
+      var it = items[i];
+      var tr = document.createElement('tr');
+
+      function td(text, cls){
+        var cell = document.createElement('td');
+        if (cls) cell.className = cls;
+        cell.textContent = text;
+        return cell;
+      }
+
+      tr.appendChild(td(it.sku));
+      tr.appendChild(td(it.tab));
+      tr.appendChild(td(it.desc));
+      tr.appendChild(td('€ ' + it.buy, 'right'));
+      tr.appendChild(td('€ ' + it.expected, 'right'));
+      tr.appendChild(td(it.sold ? 'VERKOCHT' : 'VRIJ'));
+      tr.appendChild(td(it.party));
+      tr.appendChild(td(it.channel));
+      var actionTd = document.createElement('td');
+      actionTd.className = 'right';
+
+      var btn = document.createElement('button');
+      btn.className = 'btn';
+      btn.textContent = 'Wijzig';
+      btn.onclick = (function(item){
+        return function(){
+          voorraadOpenEdit(item);
+        };
+      })(it);
+
+      actionTd.appendChild(btn);
+      tr.appendChild(actionTd);
+
+
+      tbody.appendChild(tr);
+    }
+
+    if (meta) meta.textContent = items.length + ' resultaten';
+  }
+
+  function voorraadOpenEdit(item){
+    var tab = item.tab;
+    var row = item.row;
+    var meta = document.getElementById('voorraadEditMeta');
+    var msg  = document.getElementById('voorraadEditMsg');
+    if (msg) msg.textContent = '';
+
+    _voorraadEditCtx = { tab: tab, row: row };
+
+    var modal = document.getElementById('voorraadEditModal');
+    if (!modal) return;
+    modal.style.display = 'flex';
+
+    // 🔹 DIRECT vullen vanuit zoekresultaat
+    var quick = item;
+
+    if (quick){
+      document.getElementById('veDesc').value     = quick.desc || '';
+      document.getElementById('veBuy').value      = quick.buy || '';
+      document.getElementById('veExpected').value = quick.expected || '';
+      document.getElementById('veParty').value    = quick.party || '';
+      document.getElementById('veChannel').value  = quick.channel || '';
+      if (meta) meta.textContent = 'SKU ' + quick.sku + ' • ' + tab;
+    } else {
+      if (meta) meta.textContent = 'Laden… (' + tab + ', rij ' + row + ')';
+    }
+
+
+    google.script.run
+      .withSuccessHandler(function(res){
+        if (!res || !res.ok){
+          if (meta) meta.textContent = 'Kon item niet laden.';
+          if (msg) msg.textContent = (res && res.error) ? res.error : 'Onbekende fout';
+          return;
+        }
+
+        var it = res.item || {};
+        if (meta) meta.textContent = 'SKU ' + (it.sku || '') + ' • ' + tab + ' • rij ' + row;
+
+        document.getElementById('veDesc').value     = it.desc || '';
+        document.getElementById('veBuy').value      = (it.buy === 0 ? 0 : (it.buy || ''));
+        document.getElementById('veExpected').value = (it.expected === 0 ? 0 : (it.expected || ''));
+        document.getElementById('veParty').value    = it.party || '';
+        document.getElementById('veChannel').value  = it.channel || '';
+      })
+      .withFailureHandler(function(err){
+        var m = err && err.message ? err.message : String(err);
+        if (meta) meta.textContent = 'Fout bij laden.';
+        if (msg) msg.textContent = m;
+      })
+      .apiVoorraadGetItem({ tab: tab, row: row });
+  }
+
+
+  function voorraadCloseEdit(){
+    var modal = document.getElementById('voorraadEditModal');
+    if (modal) modal.style.display = 'none';
+    _voorraadEditCtx = null;
+  }
+
+  function voorraadSaveEdit(){
+    if (!_voorraadEditCtx) return;
+
+    var payload = {
+      tab: _voorraadEditCtx.tab,
+      row: _voorraadEditCtx.row,
+      desc: document.getElementById('veDesc').value.trim(),
+      buy: document.getElementById('veBuy').value,
+      expected: document.getElementById('veExpected').value,
+      party: document.getElementById('veParty').value.trim(),
+      channel: document.getElementById('veChannel').value.trim()
+    };
+
+    var msg = document.getElementById('voorraadEditMsg');
+    if (msg) msg.textContent = 'Opslaan…';
+
+    google.script.run
+      .withSuccessHandler(function(res){
+        if (!res || !res.ok){
+          if (msg) msg.textContent = (res && res.error) ? res.error : 'Opslaan mislukt';
+          return;
+        }
+
+        if (msg) msg.textContent = 'Opgeslagen ✓';
+
+        // refresh huidige zoekresultaten
+        voorraadSearchDo(true);
+
+        setTimeout(function(){
+          voorraadCloseEdit();
+        }, 400);
+      })
+      .withFailureHandler(function(err){
+        var m = err && err.message ? err.message : String(err);
+        if (msg) msg.textContent = m;
+      })
+      .apiVoorraadUpdateItem(payload);
+  }
+
   // Run init 1x
   (function(){
     voorraadInitTabs();
     voorraadLoadRecent();
+    voorraadSearchInit();  
     tellenRender();
   })();
 
@@ -4484,5 +4892,56 @@
         </div>
       </div>
     </div>
+
+    <div id="voorraadEditModal"
+      style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:9999; align-items:center; justify-content:center;">
+      <div style="background:#fff; width:92%; max-width:520px; border-radius:14px; padding:18px 18px 14px; box-shadow:0 12px 30px rgba(0,0,0,.2);">
+
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+          <h3 style="margin:0;">Artikel wijzigen</h3>
+          <button class="btn btn-danger" onclick="voorraadCloseEdit()">Sluiten</button>
+        </div>
+
+        <div class="muted" id="voorraadEditMeta" style="margin-top:6px;"></div>
+
+        <div style="margin-top:12px;">
+          <label>Omschrijving</label>
+          <input id="veDesc" class="pill" type="text" />
+        </div>
+
+        <div style="display:flex; gap:10px; margin-top:10px;">
+          <div style="flex:1;">
+            <label>Inkoop</label>
+            <input id="veBuy" class="pill" type="number" step="0.01" />
+          </div>
+          <div style="flex:1;">
+            <label>Verwacht</label>
+            <input id="veExpected" class="pill" type="number" step="0.01" />
+          </div>
+        </div>
+
+        <div style="display:flex; gap:10px; margin-top:10px;">
+          <div style="flex:1;">
+            <label>Partij</label>
+            <input id="veParty" class="pill" type="text" />
+          </div>
+          <div style="flex:1;">
+            <label>Kanaal</label>
+            <input id="veChannel" class="pill" type="text" />
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:14px;">
+          <button class="btn btn-primary" onclick="voorraadSaveEdit()">Opslaan</button>
+        </div>
+
+        <div class="muted" id="voorraadEditMsg" style="margin-top:8px;"></div>
+      </div>
+    </div>
+
+
+      </div>
+    </div>
+
   </body>
 </html>

@@ -30,6 +30,10 @@ const VOORRAAD_COL = {
   channel: 15    // O
 };
 
+const VOORRAAD_SEARCH_CACHE_KEY = 'VOORRAAD_SEARCH_INDEX_V1';
+const VOORRAAD_SEARCH_CACHE_TTL = 60 * 10; // 10 min
+const VOORRAAD_SEARCH_CHUNK_SIZE = 50; // items per chunk
+
 
 /** ===== Helpers ===== */
 
@@ -117,6 +121,335 @@ function _getLastRealRow_(sheet) {
 
   return lastReal;
 }
+
+function _voorraadBuildSearchIndex_(){
+  const ss = SpreadsheetApp.getActive();
+  const index = [];
+
+  (VOORRAAD_TABS || []).forEach(tab => {
+    const sh = ss.getSheetByName(tab);
+    if (!sh) return;
+
+    const lastRow = sh.getLastRow();
+    if (lastRow < 2) return;
+
+    // Bulk read A..O
+    const range = sh.getRange(2, 1, lastRow - 1, 15);
+    const values = range.getValues();
+    const display = range.getDisplayValues();
+
+    for (let i = 0; i < values.length; i++){
+      const sku = String(display[i][0] || '').trim();
+      if (!sku) continue;
+
+      const desc    = display[i][1] || '';
+      const party   = display[i][4] || '';
+      const channel = display[i][14] || '';
+
+      const buy      = values[i][3];
+      const expected = values[i][5];
+      const sale     = values[i][6];
+
+      const sold = !(sale === '' || sale === null);
+      const row  = i + 2;
+
+      const haystack = (
+        sku + ' ' +
+        desc + ' ' +
+        party + ' ' +
+        channel
+      ).toLowerCase();
+
+      index.push({
+        sku,
+        tab,
+        row,
+        desc,
+        buy: Number(buy) || 0,
+        expected: Number(expected) || 0,
+        party,
+        channel,
+        sold,
+        _hay: haystack
+      });
+    }
+  });
+
+  return index;
+}
+
+function debugVoorraadSearchIndex(){
+  const idx = _voorraadBuildSearchIndex_();
+  Logger.log('Index size: ' + idx.length);
+  Logger.log(idx.slice(0, 5));
+}
+
+function _voorraadGetSearchIndex_(){
+  const cache = CacheService.getScriptCache();
+
+  // check chunk count
+  const metaRaw = cache.get(VOORRAAD_SEARCH_CACHE_KEY + '_meta');
+  if (metaRaw){
+    const meta = JSON.parse(metaRaw);
+    const all = [];
+
+    for (let i = 0; i < meta.chunks; i++){
+      const part = cache.get(VOORRAAD_SEARCH_CACHE_KEY + '_part_' + i);
+      if (part){
+        all.push(...JSON.parse(part));
+      }
+    }
+    return all;
+  }
+
+  // build fresh
+  const index = _voorraadBuildSearchIndex_();
+  const chunks = [];
+
+  for (let i = 0; i < index.length; i += VOORRAAD_SEARCH_CHUNK_SIZE){
+    chunks.push(index.slice(i, i + VOORRAAD_SEARCH_CHUNK_SIZE));
+  }
+
+  // store chunks
+  for (let i = 0; i < chunks.length; i++){
+    cache.put(
+      VOORRAAD_SEARCH_CACHE_KEY + '_part_' + i,
+      JSON.stringify(chunks[i]),
+      VOORRAAD_SEARCH_CACHE_TTL
+    );
+  }
+
+  // store meta
+  cache.put(
+    VOORRAAD_SEARCH_CACHE_KEY + '_meta',
+    JSON.stringify({ chunks: chunks.length }),
+    VOORRAAD_SEARCH_CACHE_TTL
+  );
+
+  return index;
+}
+
+
+function _voorraadInvalidateSearchIndex_(){
+  const cache = CacheService.getScriptCache();
+  const metaRaw = cache.get(VOORRAAD_SEARCH_CACHE_KEY + '_meta');
+  if (!metaRaw) return;
+
+  const meta = JSON.parse(metaRaw);
+  for (let i = 0; i < meta.chunks; i++){
+    cache.remove(VOORRAAD_SEARCH_CACHE_KEY + '_part_' + i);
+  }
+  cache.remove(VOORRAAD_SEARCH_CACHE_KEY + '_meta');
+}
+
+function _voorraadUpdateItemInCache_(updated){
+  const cache = CacheService.getScriptCache();
+  const metaRaw = cache.get(VOORRAAD_SEARCH_CACHE_KEY + '_meta');
+  if (!metaRaw) return; // geen cache → niks doen
+
+  const meta = JSON.parse(metaRaw);
+
+  for (let i = 0; i < meta.chunks; i++){
+    const key = VOORRAAD_SEARCH_CACHE_KEY + '_part_' + i;
+    const raw = cache.get(key);
+    if (!raw) continue;
+
+    const arr = JSON.parse(raw);
+    let changed = false;
+
+    for (let j = 0; j < arr.length; j++){
+      const it = arr[j];
+      if (it.tab === updated.tab && it.row === updated.row){
+        // update fields
+        it.desc     = updated.desc;
+        it.buy      = updated.buy;
+        it.expected = updated.expected;
+        it.party    = updated.party;
+        it.channel  = updated.channel;
+
+        // rebuild haystack
+        it._hay = (
+          it.sku + ' ' +
+          it.desc + ' ' +
+          it.party + ' ' +
+          it.channel
+        ).toLowerCase();
+
+        changed = true;
+        break;
+      }
+    }
+
+    if (changed){
+      cache.put(key, JSON.stringify(arr), VOORRAAD_SEARCH_CACHE_TTL);
+      return; // klaar
+    }
+  }
+}
+
+function debugVoorraadSearchCache(){
+  const t0 = Date.now();
+  const idx1 = _voorraadGetSearchIndex_();
+  const t1 = Date.now();
+
+  const idx2 = _voorraadGetSearchIndex_();
+  const t2 = Date.now();
+
+  Logger.log('First load: ' + (t1 - t0) + ' ms');
+  Logger.log('Second load: ' + (t2 - t1) + ' ms');
+  Logger.log('Index size: ' + idx2.length);
+}
+
+function apiVoorraadSearch(payload){
+  payload = payload || {};
+
+  const q = String(payload.q || '').trim().toLowerCase();
+  if (!q) return { ok: true, items: [] };
+
+  const status = String(payload.status || 'ALL');
+  const tab    = String(payload.tab || 'ALL');
+  const limit  = Math.min(Number(payload.limit || 50), 100);
+
+  const index = _voorraadGetSearchIndex_();
+  const results = [];
+
+  for (let i = 0; i < index.length; i++){
+    const it = index[i];
+
+    if (tab !== 'ALL' && it.tab !== tab) continue;
+
+    if (status === 'FREE' && it.sold) continue;
+    if (status === 'SOLD' && !it.sold) continue;
+
+    if (!it._hay.includes(q)) continue;
+
+    results.push({
+      sku: it.sku,
+      tab: it.tab,
+      row: it.row,
+      desc: it.desc,
+      buy: it.buy,
+      expected: it.expected,
+      sold: it.sold,
+      party: it.party,
+      channel: it.channel
+    });
+
+    if (results.length >= limit) break;
+  }
+
+  return { ok: true, items: results };
+}
+
+function debugVoorraadSearch(){
+  const t0 = Date.now();
+  const res = apiVoorraadSearch({
+    q: 'driver',
+    status: 'ALL',
+    tab: 'ALL',
+    limit: 50
+  });
+  const t1 = Date.now();
+
+  Logger.log('Search ms: ' + (t1 - t0));
+  Logger.log('Results: ' + res.items.length);
+}
+
+function apiVoorraadGetItem(payload){
+  payload = payload || {};
+  const tab = String(payload.tab || '').trim();
+  const row = Number(payload.row || 0);
+
+  if (!tab) return { ok:false, error:'Tab ontbreekt' };
+  if (!row || row < 2) return { ok:false, error:'Rij ongeldig' };
+
+  const ss = SpreadsheetApp.getActive();
+  const sh = ss.getSheetByName(tab);
+  if (!sh) return { ok:false, error:'Tab niet gevonden: ' + tab };
+
+  // lees A..O
+  const range = sh.getRange(row, 1, 1, 15);
+  const values = range.getValues()[0];
+  const display = range.getDisplayValues()[0];
+
+  const sku = String(display[0] || '').trim();
+  if (!sku) return { ok:false, error:'Geen SKU op deze rij' };
+
+  // kolommen (0-based in arrays)
+  const desc    = display[1]  || '';   // B
+  const buy     = values[3]   || 0;    // D
+  const party   = display[4]  || '';   // E
+  const expected= values[5]   || 0;    // F
+  const sale    = values[6];           // G
+  const channel = display[14] || '';   // O
+
+  const sold = !(sale === '' || sale === null);
+
+  return {
+    ok: true,
+    item: {
+      sku: sku,
+      tab: tab,
+      row: row,
+      desc: desc,
+      buy: Number(buy) || 0,
+      expected: Number(expected) || 0,
+      party: party,
+      channel: channel,
+      sold: sold
+    }
+  };
+}
+
+function apiVoorraadUpdateItem(payload){
+  payload = payload || {};
+
+  const tab = String(payload.tab || '').trim();
+  const row = Number(payload.row || 0);
+
+  if (!tab) return { ok:false, error:'Tab ontbreekt' };
+  if (!row || row < 2) return { ok:false, error:'Rij ongeldig' };
+
+  const desc     = String(payload.desc || '').trim();
+  const party    = String(payload.party || '').trim();
+  const channel  = String(payload.channel || '').trim();
+
+  const buy      = Number(payload.buy);
+  const expected = Number(payload.expected);
+
+  if (!desc) return { ok:false, error:'Omschrijving is verplicht' };
+  if (isNaN(buy)) return { ok:false, error:'Inkoop is ongeldig' };
+  if (isNaN(expected)) return { ok:false, error:'Verwacht is ongeldig' };
+
+  const ss = SpreadsheetApp.getActive();
+  const sh = ss.getSheetByName(tab);
+  if (!sh) return { ok:false, error:'Tab niet gevonden: ' + tab };
+
+  // schrijf waarden
+  sh.getRange(row, 2).setValue(desc);      // B omschrijving
+  sh.getRange(row, 4).setValue(buy);       // D inkoop
+  sh.getRange(row, 5).setValue(party);     // E partij
+  sh.getRange(row, 6).setValue(expected);  // F verwacht
+  sh.getRange(row, 15).setValue(channel);  // O kanaal
+
+  SpreadsheetApp.flush();
+
+  // zoek-index invalidaten
+  // zoek-index gedeeltelijk bijwerken
+  _voorraadUpdateItemInCache_({
+    tab: tab,
+    row: row,
+    desc: desc,
+    buy: buy,
+    expected: expected,
+    party: party,
+    channel: channel
+  });
+
+
+  return { ok:true };
+}
+
 
 /** ===== Voorraad: Inschrijven ===== */
 
