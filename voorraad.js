@@ -64,6 +64,60 @@ function _getSheetByNameOrThrow_(name){
   return sh;
 }
 
+function _buildSkuIndex_() {
+  const ss = SpreadsheetApp.getActive();
+  const index = {};
+
+  (VOORRAAD_TABS || []).forEach(tab => {
+    const sh = ss.getSheetByName(tab);
+    if (!sh) return;
+
+    const last = sh.getLastRow();
+    if (last < 2) return;
+
+    const data = sh.getRange(2, 1, last - 1, 7).getValues(); // A..G
+
+    data.forEach((r, i) => {
+      const sku = String(r[0] || '').trim();
+      if (!sku) return;
+
+      const sale = r[6];
+      index[sku] = {
+        tab,
+        row: 2 + i,
+        desc: r[1] || '',
+        sold: !(sale === '' || sale === null),
+        sale: sale || ''
+      };
+    });
+  });
+
+  return index;
+}
+
+
+function _getSkuIndex_() {
+  const raw = CacheService.getUserCache().get('STOCKCOUNT_SKU_INDEX');
+  return raw ? JSON.parse(raw) : null;
+}
+
+function _getLastRealRow_(sheet) {
+  const last = sheet.getLastRow();
+  if (last < 1) return 1;
+
+  const values = sheet.getRange(1, 1, last, 1).getValues(); // alleen kolom A (SKU)
+  let lastReal = 1;
+
+  values.forEach((r, i) => {
+    const v = r[0];
+    if (v !== '' && v !== null) {
+      lastReal = i + 1;
+    }
+  });
+
+  return lastReal;
+}
+
 /** ===== Voorraad: Inschrijven ===== */
 
 /**
@@ -137,23 +191,6 @@ function apiVoorraadCreateItem(payload){
   };
 }
 
-function _getLastRealRow_(sheet) {
-  const last = sheet.getLastRow();
-  if (last < 1) return 1;
-
-  const values = sheet.getRange(1, 1, last, 1).getValues(); // alleen kolom A (SKU)
-  let lastReal = 1;
-
-  values.forEach((r, i) => {
-    const v = r[0];
-    if (v !== '' && v !== null) {
-      lastReal = i + 1;
-    }
-  });
-
-  return lastReal;
-}
-
 /**
  * Laatste N toegevoegde items, tab-overstijgend.
  * We sorteren op SKU (hoog -> laag), omdat dat jouw teller-volgorde is.
@@ -221,9 +258,10 @@ function _initTellingSpreadsheet_(ss){
   const shT = sheets[0];
   shT.setName('Tellingen');
   shT.clearContents();
-  shT.getRange(1,1,1,8).setValues([[
+  shT.getRange(1,1,1,9).setValues([[
     'TellingID','StartedAt','FinishedAt','ExpectedCount',
-    'FoundCount','MissingCount','SoldScans','UnknownScans'
+    'FoundCount','MissingCount','SoldScans','UnknownScans',
+    'FileId'
   ]]);
 
   // 2️⃣ Verwijder eventuele extra sheets (veilig)
@@ -361,7 +399,7 @@ function apiVoorraadTellingStart(){
 
   // Log telling
   const shT = ssCount.getSheetByName('Tellingen');
-  shT.appendRow([id, now.toISOString(), '', expectedRows.length, 0, expectedRows.length, 0, 0]);
+  shT.appendRow([id, now.toISOString(), '', expectedRows.length, 0, expectedRows.length, 0, 0, ssCount.getId() ]);
 
   // Save expected snapshot
   const shE = ssCount.getSheetByName('Expected');
@@ -373,6 +411,12 @@ function apiVoorraadTellingStart(){
   CacheService.getUserCache().put(STOCKCOUNT_USERCACHE_KEY, id, 60 * 60 * 6); // 6 uur
   CacheService.getUserCache().put(STOCKCOUNT_USERCACHE_KEY + '_FILE', ssCount.getId(), 60 * 60 * 6);
 
+  const skuIndex = _buildSkuIndex_();
+  CacheService.getUserCache().put(
+    'STOCKCOUNT_SKU_INDEX',
+    JSON.stringify(skuIndex),
+    60 * 60 * 6
+  );
 
 
   return { ok:true, tellingId:id, expectedCount: expectedRows.length };
@@ -386,31 +430,11 @@ function apiVoorraadTellingScan(sku){
   _assert_(skuStr, 'Vul/scan een SKU.');
 
   // Zoek in alle tabs, pak de rij, bepaal sold status via kolom G
-  const ssMain = SpreadsheetApp.getActive();
-  let found = null;
+  // 🔥 SKU lookup via cache (8.1D)
+  const skuIndex = _getSkuIndex_();
+  _assert_(skuIndex, 'SKU-index niet gevonden. Start de telling opnieuw.');
 
-  for (let t=0; t<(VOORRAAD_TABS||[]).length; t++){
-    const tab = VOORRAAD_TABS[t];
-    const sh = ssMain.getSheetByName(tab);
-    if (!sh) continue;
-
-    const last = sh.getLastRow();
-    if (last < 2) continue;
-
-    // voor performance: zoek in kolom A
-    const skus = sh.getRange(2, 1, last-1, 1).getValues();
-    for (let i=0; i<skus.length; i++){
-      if (String(skus[i][0] || '').trim() === skuStr){
-        const row = 2 + i;
-        const desc = sh.getRange(row, COL.desc).getValue();
-        const sale = sh.getRange(row, COL.sale).getValue();
-        const status = (sale === '' || sale === null) ? 'KLOPT' : 'AL_VERKOCHT';
-        found = { tab, row, desc, status, sale };
-        break;
-      }
-    }
-    if (found) break;
-  }
+  const found = skuIndex[skuStr] || null;
 
   const fileId = CacheService.getUserCache().get(STOCKCOUNT_USERCACHE_KEY + '_FILE');
   _assert_(fileId, 'Tellingbestand niet gevonden.');
@@ -425,10 +449,30 @@ function apiVoorraadTellingScan(sku){
     return { ok:true, tellingId:id, sku:skuStr, status:'ONBEKEND' };
   }
 
-  shS.appendRow([id, now.toISOString(), skuStr, found.status, found.tab, found.row, found.desc, found.sale || '' ]);
+  const status = found.sold ? 'AL_VERKOCHT' : 'KLOPT';
 
-  return { ok:true, tellingId:id, sku:skuStr, status:found.status, tab:found.tab, row:found.row, desc:found.desc };
+  shS.appendRow([
+    id,
+    now.toISOString(),
+    skuStr,
+    status,
+    found.tab,
+    found.row,
+    found.desc,
+    found.sale || ''
+  ]);
+
+  return {
+    ok: true,
+    tellingId: id,
+    sku: skuStr,
+    status,
+    tab: found.tab,
+    row: found.row,
+    desc: found.desc
+  };
 }
+
 
 function apiVoorraadTellingFinish(opts){
   opts = opts || {};
@@ -553,8 +597,10 @@ function apiVoorraadTellingFinish(opts){
   }
 
   // afsluiten
-  CacheService.getUserCache().remove(STOCKCOUNT_USERCACHE_KEY);
-  debug: dbg
+  const uc = CacheService.getUserCache();
+  uc.remove(STOCKCOUNT_USERCACHE_KEY);
+  uc.remove(STOCKCOUNT_USERCACHE_KEY + '_FILE');
+  uc.remove('STOCKCOUNT_SKU_INDEX');
 
   return {
     ok: true,
@@ -564,13 +610,9 @@ function apiVoorraadTellingFinish(opts){
     missingCount: missing.length,
     missingItems: missing,
     debug: dbg,
-
-
-    // 👇 ALTIJD AANWEZIG
     scannedRows: scannedRows || [],
     expectedRows: expected || [],
     resultRows: resRows || [],
-
     soldScans,
     unknownScans
   };
@@ -579,10 +621,29 @@ function apiVoorraadTellingFinish(opts){
 function apiVoorraadTellingReceipt(tellingId){
   _assert_(tellingId, 'TellingID ontbreekt.');
 
-  const ssId = CacheService.getUserCache().get(STOCKCOUNT_USERCACHE_KEY + '_FILE');
-  _assert_(ssId, 'Tellingbestand niet gevonden.');
+  // Zoek bestand-ID via Tellingen sheet
+  const ssMain = SpreadsheetApp.getActive();
+  const tellingFolder = _getVoorraadTellingFolder_();
 
-  const ss = SpreadsheetApp.openById(ssId);
+  // zoek alle telling-bestanden (we weten: 1 telling = 1 file)
+  const files = tellingFolder.getFiles();
+  let ss = null;
+
+  while (files.hasNext()){
+    const f = files.next();
+    const tmp = SpreadsheetApp.openById(f.getId());
+    const shT = tmp.getSheetByName('Tellingen');
+    if (!shT) continue;
+
+    const vals = shT.getRange(2,1,shT.getLastRow()-1,1).getValues();
+    if (vals.flat().includes(tellingId)){
+      ss = tmp;
+      break;
+    }
+  }
+
+  _assert_(ss, 'Tellingbestand niet gevonden.');
+
   const shR = ss.getSheetByName('Result');
   const shT = ss.getSheetByName('Tellingen');
 
