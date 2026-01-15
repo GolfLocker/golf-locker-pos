@@ -1,17 +1,19 @@
-const PUSHOVER_USERS = [
-  '',   ////Danilo
-  '',   ////Menno
-  ''   ////Werk telefoon
-];
+const APP_TOKEN = PropertiesService
+  .getScriptProperties()
+  .getProperty('PUSHOVER_APP_TOKEN');
 
-const PUSHOVER_APP_TOKEN = '';
+const USER_KEYS = PropertiesService
+  .getScriptProperties()
+  .getProperty('PUSHOVER_USERS')
+  .split(','); // maakt er een array van
+
 
 function sendPush(title, message) {
-  PUSHOVER_USERS.forEach(userKey => {
+  USER_KEYS.forEach(userKey => {
     UrlFetchApp.fetch('https://api.pushover.net/1/messages.json', {
       method: 'post',
       payload: {
-        token: PUSHOVER_APP_TOKEN,
+        token: APP_TOKEN,
         user: userKey,
         title,
         message,
