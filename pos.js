@@ -658,7 +658,9 @@ function apiAddFast(sku) {
       party:     "",
       edited:    false,
       channel:   '',
-      positions: [{ row: generated.row, free: true }]
+      positions: [{ row: generated.row, free: true }],
+      // 🔑 marker doorgeven
+      _source: 'TROEPHOEK'
     };
 
     // ❌ geen backend cart
@@ -1120,6 +1122,35 @@ function apiBookAndReceipt(payMethod, customerEmail) {
     apiClearDiscount();
     apiClearGiftcard();
 
+    // 🔍 Troephoek-items zonder aankoopprijs (kolom D)
+    const troephoekMissingBuy = (Array.isArray(cart) ? cart : [])
+      .filter(it =>
+        it &&
+        it._source === 'TROEPHOEK' &&
+        it.sku !== 'GIFTCARD' &&          // ✅ uitzondering
+        it.sheetName &&
+        it.row
+      )
+      .map(it => {
+        const sh = ss.getSheetByName(it.sheetName);
+        if (!sh) return null;
+
+        const buyRaw = sh.getRange(it.row, 4).getValue(); // kolom D
+        const buyNum = Number(String(buyRaw).replace('€','').replace(/\s/g,'').replace(',','.')) || 0;
+
+        // ✅ popup tonen als leeg OF 0
+        if (buyRaw !== '' && buyRaw !== null && buyNum > 0) return null;
+
+
+        return {
+          sku: it.sku,
+          desc: it.desc || '',
+          sheetName: it.sheetName,
+          row: it.row
+        };
+      })
+      .filter(Boolean);
+
     // Cart & index reset
     clearCart();
     invalidateSkuIndex_();
@@ -1180,7 +1211,7 @@ function apiBookAndReceipt(payMethod, customerEmail) {
 
 
     // front-end gebruikt ticketUrl voor directe (live) 80mm-print
-    return { total, receiptNo, ticketUrl, itemsSold };
+    return { total, receiptNo, ticketUrl, itemsSold, troephoekMissingBuy };
 
   } finally {
     try { lock.releaseLock(); } catch (e) {}

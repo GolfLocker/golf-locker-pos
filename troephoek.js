@@ -121,7 +121,10 @@ function createGeneratedItem(baseSku) {
     expected: fixedPrice,
     party: "",
     row: lastRow + 1,
-    sheetName: cfg.tab
+    sheetName: cfg.tab,
+
+    // 🔑 marker: komt uit troephoek generator
+    _source: 'TROEPHOEK'
   };
 }
 
@@ -182,3 +185,33 @@ function getNextGeneratedSku(sheet, prefix) {
 
   return prefix + (highest + 1);
 }
+
+function apiSaveTroephoekBuyPrices(items) {
+  if (!Array.isArray(items) || !items.length) {
+    return { ok: true };
+  }
+
+  const ss = SpreadsheetApp.getActive();
+
+  items.forEach(it => {
+    if (!it || !it.sheetName || !it.row) return;
+
+    const sh = ss.getSheetByName(it.sheetName);
+    if (!sh) return;
+
+    // accepteer "12,50", "12.50", "€12,50"
+    const raw = String(it.buy || '')
+      .replace('€', '')
+      .replace(/\s/g, '')
+      .replace(',', '.');
+
+    const val = Number(raw);
+    if (isNaN(val) || val <= 0) return;
+
+    // kolom D = aankoopprijs
+    sh.getRange(Number(it.row), 4).setValue(val);
+  });
+
+  return { ok: true };
+}
+
