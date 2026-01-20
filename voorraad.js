@@ -34,6 +34,11 @@ const VOORRAAD_SEARCH_CACHE_KEY = 'VOORRAAD_SEARCH_INDEX_V1';
 const VOORRAAD_SEARCH_CACHE_TTL = 60 * 10; // 10 min
 const VOORRAAD_SEARCH_CHUNK_SIZE = 50; // items per chunk
 
+const STOCKCOUNT_SKU_CACHE_KEY = 'STOCKCOUNT_SKU_INDEX_V1';
+const STOCKCOUNT_SKU_CHUNK_SIZE = 100;
+const STOCKCOUNT_SKU_CACHE_TTL = 60 * 60 * 6; // 6 uur
+
+
 
 /** ===== Helpers ===== */
 
@@ -100,10 +105,23 @@ function _buildSkuIndex_() {
 }
 
 
-function _getSkuIndex_() {
-  const raw = CacheService.getUserCache().get('STOCKCOUNT_SKU_INDEX');
-  return raw ? JSON.parse(raw) : null;
+function _getSkuIndex_(){
+  const cache = CacheService.getUserCache();
+  const metaRaw = cache.get(STOCKCOUNT_SKU_CACHE_KEY + '_meta');
+  if (!metaRaw) return null;
+
+  const meta = JSON.parse(metaRaw);
+  const index = {};
+
+  for (let i = 0; i < meta.chunks; i++){
+    const raw = cache.get(STOCKCOUNT_SKU_CACHE_KEY + '_part_' + i);
+    if (raw){
+      Object.assign(index, JSON.parse(raw));
+    }
+  }
+  return index;
 }
+
 
 function _getLastRealRow_(sheet) {
   const last = sheet.getLastRow();
@@ -745,11 +763,7 @@ function apiVoorraadTellingStart(){
   CacheService.getUserCache().put(STOCKCOUNT_USERCACHE_KEY + '_FILE', ssCount.getId(), 60 * 60 * 6);
 
   const skuIndex = _buildSkuIndex_();
-  CacheService.getUserCache().put(
-    'STOCKCOUNT_SKU_INDEX',
-    JSON.stringify(skuIndex),
-    60 * 60 * 6
-  );
+  _tellingSkuIndexCacheSave_(skuIndex);
 
 
   return { ok:true, tellingId:id, expectedCount: expectedRows.length };
@@ -803,6 +817,61 @@ function apiVoorraadTellingScan(sku){
     tab: found.tab,
     row: found.row,
     desc: found.desc
+  };
+}
+
+function apiVoorraadTellingLiveStatus(){
+  const id = CacheService.getUserCache().get(STOCKCOUNT_USERCACHE_KEY);
+  if (!id) return { ok:false, error:'Geen actieve telling' };
+
+  const fileId = CacheService.getUserCache().get(STOCKCOUNT_USERCACHE_KEY + '_FILE');
+  if (!fileId) return { ok:false, error:'Tellingbestand niet gevonden' };
+
+  const ss = SpreadsheetApp.openById(fileId);
+  const shE = ss.getSheetByName('Expected');
+  const shS = ss.getSheetByName('Scans');
+
+  const exp = shE.getDataRange().getValues();
+  const scan = shS.getDataRange().getValues();
+
+  // Expected SKU set
+  const expectedSet = new Set();
+  for (let i = 1; i < exp.length; i++){
+    if (String(exp[i][0]) === id){
+      expectedSet.add(String(exp[i][1]).trim());
+    }
+  }
+
+  // Scanned OK set
+  const scannedOk = new Set();
+  for (let i = 1; i < scan.length; i++){
+    if (String(scan[i][0]) === id && scan[i][3] === 'KLOPT'){
+      scannedOk.add(String(scan[i][2]).trim());
+    }
+  }
+
+  // Missing = expected - scannedOk (met omschrijving)
+  const missing = [];
+  for (let i = 1; i < exp.length; i++){
+    if (String(exp[i][0]) !== id) continue;
+
+    const sku  = String(exp[i][1] || '').trim();
+    if (!sku || scannedOk.has(sku)) continue;
+
+    missing.push({
+      sku: sku,
+      desc: exp[i][4] || ''   // kolom Omschrijving
+    });
+  }
+
+
+  return {
+    ok: true,
+    expectedCount: expectedSet.size,
+    scannedCount: scannedOk.size,
+    missingCount: missing.length,
+    missingItems: missing.slice(0, 10),
+    allMissing: missing   // 👈 volledig, voor popup
   };
 }
 
@@ -933,7 +1002,15 @@ function apiVoorraadTellingFinish(opts){
   const uc = CacheService.getUserCache();
   uc.remove(STOCKCOUNT_USERCACHE_KEY);
   uc.remove(STOCKCOUNT_USERCACHE_KEY + '_FILE');
-  uc.remove('STOCKCOUNT_SKU_INDEX');
+  const metaRaw = uc.get(STOCKCOUNT_SKU_CACHE_KEY + '_meta');
+  if (metaRaw){
+    const meta = JSON.parse(metaRaw);
+    for (let i = 0; i < meta.chunks; i++){
+      uc.remove(STOCKCOUNT_SKU_CACHE_KEY + '_part_' + i);
+    }
+    uc.remove(STOCKCOUNT_SKU_CACHE_KEY + '_meta');
+  }
+
 
   return {
     ok: true,
@@ -1041,6 +1118,45 @@ function apiVoorraadTellingReceipt(tellingId){
     other
   };
 }
+
+function _tellingSkuIndexCacheSave_(index){
+  const cache = CacheService.getUserCache();
+
+  // cleanup oude chunks
+  const metaRaw = cache.get(STOCKCOUNT_SKU_CACHE_KEY + '_meta');
+  if (metaRaw){
+    const meta = JSON.parse(metaRaw);
+    for (let i = 0; i < meta.chunks; i++){
+      cache.remove(STOCKCOUNT_SKU_CACHE_KEY + '_part_' + i);
+    }
+  }
+
+  const keys = Object.keys(index);
+  const chunks = [];
+
+  for (let i = 0; i < keys.length; i += STOCKCOUNT_SKU_CHUNK_SIZE){
+    const part = {};
+    keys.slice(i, i + STOCKCOUNT_SKU_CHUNK_SIZE).forEach(k => {
+      part[k] = index[k];
+    });
+    chunks.push(part);
+  }
+
+  for (let i = 0; i < chunks.length; i++){
+    cache.put(
+      STOCKCOUNT_SKU_CACHE_KEY + '_part_' + i,
+      JSON.stringify(chunks[i]),
+      STOCKCOUNT_SKU_CACHE_TTL
+    );
+  }
+
+  cache.put(
+    STOCKCOUNT_SKU_CACHE_KEY + '_meta',
+    JSON.stringify({ chunks: chunks.length }),
+    STOCKCOUNT_SKU_CACHE_TTL
+  );
+}
+
 
 /** Alleen voor testen/debug */
 function apiVoorraadTellingGetActive(){

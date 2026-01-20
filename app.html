@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#297900">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>Golf Locker POS</title>
+  <title>Test Golf Locker POS</title>
 
   <link rel="manifest" href="?file=manifest">
   <link rel="apple-touch-icon" href="https://shop.golf-locker.nl/wp-content/uploads/2024/04/Golf-Locker-Logo-1-scaled.png">
@@ -42,7 +42,7 @@
     .brand{display:flex;align-items:center;gap:10px}
     .brand img{height:40px;width:auto;display:block}
     .brand h1{font-size:18px;margin:0;font-weight:600;color:var(--accent)}
-    .actions{display:flex;gap:8px}
+    .actions{display:flex;flex-direction: column;gap:8px}
     .btn{
       font-size:15px;
       padding:10px 14px;
@@ -60,6 +60,7 @@
     .btn-ghost{background:#fff}
 
     .wrap{
+      width:100%;
       max-width:1200px;
       margin:0 auto;
       padding:16px;
@@ -103,26 +104,22 @@
     .right{text-align:right}
     .center{text-align:center}
 
-    .footer{
-      position:fixed;
-      left:0;right:0;bottom:0;
-      z-index:100;
-      background:#fff;
-      border-top:2px solid var(--accent);
-      box-shadow:0 -3px 6px rgba(0,0,0,.10);
-      padding:10px 14px;
-      padding-bottom:calc(10px + env(safe-area-inset-bottom));
-    }
     .footer-inner{
-      max-width:1200px;
-      margin:0 auto;
+      max-width:100%;
+      width:100%;
+      margin:0;
+
       display:flex;
       flex-direction:row;
       justify-content:space-between;
       align-items:flex-start;
       gap:20px;
       flex-wrap:wrap;
+
+      box-sizing:border-box;
     }
+
+
     
     .footer-left{flex:1;min-width:220px}
     .footer-right{flex:1.2;min-width:260px}
@@ -429,6 +426,74 @@
     height: 220px;
   }
 
+  /* =========================================================
+    Skeleton uitbreidingen (ERP-breed)
+    — gebruikt bestaande .skeleton animatie
+    — geen overrides van bestaande classes
+  ========================================================= */
+
+  /* Tekstregels (alternatief naast .skel-line) */
+  .skeleton-text {
+    height: 14px;
+    margin-bottom: 8px;
+  }
+
+  /* Tabel-achtige rijen */
+  .skeleton-row {
+    height: 36px;
+    margin-bottom: 6px;
+    border-radius: 6px;
+  }
+
+  /* Compacte rijen (bijv. kleine lijsten) */
+  .skeleton-row-sm {
+    height: 24px;
+    margin-bottom: 6px;
+    border-radius: 6px;
+  }
+
+  /* Card placeholders (bijv. dashboards / panelen) */
+  .skeleton-card {
+    height: 120px;
+    border-radius: 10px;
+  }
+
+  /* Grote panel / formulier placeholder */
+  .skeleton-panel {
+    height: 180px;
+    border-radius: 12px;
+  }
+
+  /* Tabel wrapper helper */
+  .skeleton-table td {
+    padding: 8px;
+  }
+
+  /* Inline skeleton (bijv. in labels of buttons) */
+  .skeleton-inline {
+    display: inline-block;
+    width: 120px;
+    height: 14px;
+    vertical-align: middle;
+    border-radius: 6px;
+  }
+
+  /* Skeletons mogen nooit clicks blokkeren */
+  #retourSkeleton {
+    pointer-events: none;
+  }
+  #huurSkeleton {
+    pointer-events: none;
+  }
+
+
+
+  /* Extra spacing helpers (optioneel) */
+  .skel-mb-sm { margin-bottom: 6px; }
+  .skel-mb-md { margin-bottom: 12px; }
+  .skel-mb-lg { margin-bottom: 18px; }
+
+
   /* --- Code panel styling --- */
 
   .code-panel-wrapper {
@@ -695,560 +760,995 @@
     animation: scanHighlight 1.2s ease-out;
   }
 
+  /* =========================================================
+    MOCKUP SIDEBAR DESIGN – NAMESPACED
+    Scope: .gl-erp
+    Stap: 0.2
+  ========================================================= */
+
+  .gl-erp * {
+    box-sizing: border-box;
+  }
+
+  .gl-erp body {
+    margin: 0;
+  }
+
+  /* Layout */
+  .gl-erp .app {
+    display: flex;
+    height: 100vh;
+    background: #f4f6f8;
+  }
+
+  /* Sidebar */
+  .gl-erp .sidebar {
+    width: 210px;
+    background: #0d0d0d;
+    color: #ffffff;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+
+  .gl-erp .brand {
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 17px;
+    font-weight: 600;
+  }
+
+  .gl-erp .logo {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    background: #2f7d32;
+  }
+
+  .gl-erp .menu {
+    padding: 8px;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  /* Menu items */
+  .gl-erp .menu-item {
+    padding: 10px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
+    font-size: 14px;
+    user-select: none;
+  }
+
+  .gl-erp .menu-item:hover {
+    background: rgba(255,255,255,0.06);
+  }
+
+  .gl-erp .menu-item.active {
+    background: rgba(255,255,255,0.1);
+    border-left: 3px solid #2f7d32;
+    font-weight: 600;
+  }
+
+  /* Submenu */
+  .gl-erp .submenu {
+    display: none;
+    padding-left: 18px;
+    padding-bottom: 20px;
+    margin-top: 6px;
+    border-left: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .gl-erp .menu-item.open > .submenu {
+    display: block;
+  }
+
+  .gl-erp .submenu div {
+    padding: 6px 0;
+    opacity: 0.85;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .gl-erp .submenu div:hover {
+    opacity: 1;
+  }
+
+  .gl-erp .submenu > div.active {
+    color: #2f7d32;
+    font-weight: 600;
+  }
+
+  /* Content */
+  .gl-erp .content {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+
+    /* NIEUW */
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 0; /* belangrijk voor scroll gedrag */
+  }
+
+  .gl-erp .view {
+    display: none;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .gl-erp .view.active {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch; /* 🔥 belangrijk */
+  }
+
+  .gl-erp .view.active .footer {
+    margin-top: auto;
+  }
+
+  /* Topbar (mobile) */
+  .gl-erp .topbar {
+    display: none;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .gl-erp .hamburger {
+    font-size: 22px;
+    cursor: pointer;
+  }
+
+  /* Mobile */
+  @media (max-width: 768px) {
+    .gl-erp .sidebar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      height: 100%;
+      transform: translateX(-100%);
+    }
+
+    .gl-erp .sidebar.open {
+      transform: translateX(0);
+    }
+
+    .gl-erp .topbar {
+      display: flex;
+    }
+  }
+
+  /* =========================================================
+    STAP 1.1a – Dropdown structure fix
+  ========================================================= */
+
+  /* menu-item met submenu als block, niet flex-row */
+  .gl-erp .menu-item.has-sub {
+    display: block;
+    padding: 0;
+  }
+
+  /* header van dropdown */
+  .gl-erp .menu-item.has-sub > .menu-main {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+
+  /* hover alleen op header */
+  .gl-erp .menu-item.has-sub > .menu-main:hover {
+    background: rgba(255,255,255,0.06);
+  }
+
+  /* submenu strak onder parent */
+  .gl-erp .menu-item.has-sub > .submenu {
+    margin-top: 4px;
+    margin-left: 12px;
+    padding-left: 12px;
+    border-left: 1px solid rgba(255,255,255,0.08);
+  }
+
+  /* submenu items uitlijnen */
+  .gl-erp .submenu > div {
+    padding: 6px 0;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  /* voorkom dat submenu-items hele rij highlighten */
+  .gl-erp .submenu > div:hover {
+    background: none;
+  }
+
+  /* =========================
+    SIDEBAR – ACTIVE STATE FIX
+    ========================= */
+
+  /* Reset: submenu parents mogen NOOIT groen worden */
+  .menu-item.has-sub.active,
+  .menu-item.has-sub.active > .menu-main,
+  .menu-item.has-sub.active span {
+    color: #ffffff !important;
+  }
+
+  /* Alleen echte leaf-items (met data-view) groen */
+  .submenu > div[data-view].active {
+    color: var(--accent-green, #2f7d32);
+    font-weight: 600;
+  }
+
+  /* Zorg dat nested submenu parents (zoals Golfclubs) wit blijven */
+  .submenu .menu-item.has-sub {
+    color: #ffffff;
+    font-weight: normal;
+  }
+
+  /* Optioneel: alleen een subtiele indicator bij actieve leaf */
+  .submenu > div[data-view].active::before {
+    content: '';
+    position: absolute;
+    left: -10px;
+    top: 6px;
+    width: 4px;
+    height: 14px;
+    border-radius: 2px;
+    background: var(--accent-green, #2f7d32);
+  }
+
+  /* =========================
+    Kassa footer styling
+  ========================= */
+  .gl-erp #view-kassa .footer{
+    position: sticky;
+    bottom: 0;
+    width:100%;
+
+    margin-top: auto; /* 🔥 DIT is de sleutel */
+    
+    background:#fff;
+    border-top:2px solid var(--accent);
+    border-radius:8px;
+    box-shadow:0 -3px 6px rgba(0,0,0,.10);
+    padding:10px 14px;
+    padding-bottom:calc(10px + env(safe-area-inset-bottom));
+
+    z-index:20;
+  }
+
+
+  /* =========================
+    STAP 1.0 – legacy layout tijdelijk uit
+  ========================= */
+  #legacy-app {
+    display: none;
+  }
+
+
 
 </style>
 </head>
 <body>
-  <!-- Header -->
-  <div class="appbar">
-    <div style="display:flex; align-items:center; gap:12px;">
-      <div class="brand">
-        <img src="https://shop.golf-locker.nl/wp-content/uploads/2024/04/Golf-Locker-Logo-1-scaled.png" alt="Golf Locker" />
-        <h1>Golf Locker — POS</h1>
-      </div>
-      <div class="tabs">
-        <button class="tab-btn active" data-view="pos">Kassa</button>
-        <button class="tab-btn" data-view="retour">Retour</button>
-        <button class="tab-btn" data-view="bonnen">Bonnen</button>
-        <button class="tab-btn" data-view="huur">Huren</button>
-        <button class="tab-btn" data-view="voorraad">Voorraad</button>
-        <button class="tab-btn" data-view="sessie">Sessie</button>
-      </div>
-    </div>
-    <div class="actions">
-      <button class="btn" onclick="openEndSessionModal()">Sessie afsluiten</button>
-      <button class="btn btn-ghost" onclick="refreshNow()">Vernieuw</button>
-      <button class="btn btn-danger" onclick="newCart()" title="Nieuwe verkoop (reset)">Nieuwe verkoop</button>
-    </div>
-  </div>
+  <div class="gl-erp">
+    <div class="app">
 
-  <!-- Kassa -->
-  <section id="view-pos" class="view active">
-    <div class="wrap">
-      <div class="panel">
-        <div class="scanbar">
-          <input id="scan" class="pill" placeholder="Scan of typ SKU" autofocus />
-          <button class="btn btn-scan" onclick="addScan()">Toevoegen</button>
-          <button class="btn btn-cam" onclick="toggleCamera()" id="camBtn">Camera</button>
+      <!-- SIDEBAR -->
+      <aside class="sidebar" id="glSidebar">
+        <div class="brand">
+          <img src="https://shop.golf-locker.nl/wp-content/uploads/2026/01/Golf-Locker-Logo-2-scaled.png" alt="Golf Locker" />
         </div>
 
-        <div id="cameraWrap"><video id="preview" playsinline></video></div>
+        <nav class="menu">
 
-        <table id="cartTbl">
-          <thead>
-            <tr>
-              <th style="width:120px">SKU</th>
-              <th>Omschrijving</th>
-              <th class="right" style="width:140px">Prijs</th>
-              <th class="center" style="width:110px">Aantal</th>
-              <th class="right" style="width:140px">Subtotaal</th>
-              <th style="width:60px"></th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-          <tfoot>
-            <tr>
-              <td colspan="4" class="right muted">Totaal (sub)</td>
-              <td id="total" class="right">€ 0,00</td>
-              <td></td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-    </div>
+          <div class="menu-item active" data-view="kassa">🧾 Kassa</div>
 
-    <!-- Sticky footer -->
-    <div class="footer">
-      <div class="footer-inner">
-        <div class="footer-left">
-          <div class="total-big">Totaal: <span id="totalBig">€ 0,00</span></div>
-          <div class="item-count" id="itemCount">0 artikelen</div>
-          <div id="activeCodeStatus" class="muted" style="margin-top:6px;"></div>
-        </div>
-      
-        <div class="code-panel-wrapper">
-          <div class="code-panel code-grid">
-            <div class="code-left">
-              <h3>Korting/Cadeaubon</h3>
-              <input id="codeInput" type="text" class="code-input" placeholder="Scan of plak code…">
-              <div id="codeResult" class="code-result muted"></div>
+          <div class="menu-item has-sub">
+            <div class="menu-main">
+              <span>📦 Verkoop</span><span>▾</span>
             </div>
-            <div class="code-right">
-              <h3> </h3>
-              <button id="codeCheckBtn" class="btn btn-secondary code-btn" onclick="lookupCodeUi()">Check</button>
-              <button id="codeApplyBtn" class="btn btn-primary code-btn" onclick="applyCodeUi()">Toepassen</button>
-              <button id="codeClearBtn" class="btn btn-danger code-btn" style="visibility:hidden;" onclick="clearActiveCodeUi()">Verwijderen</button>
+            <div class="submenu">
+              <div data-view="retour">Retour</div>
+              <div data-view="bonnen">Bonnen</div>
+              <div data-view="huren">Huren</div>
+              <div data-view="cadeaubonnen">Cadeaubonnen</div>
+              <div data-view="kortingen">Kortingen</div>
             </div>
           </div>
-        </div>
-        <div class="footer-right">
-          <label for="pay">Selecteer betaalwijze</label>
-          <select id="pay">
-            <option value="" selected>Betaalwijze</option>
-            <option value="PIN">PIN</option>
-            <option value="Contant">Contant</option>
-            <option value="Tikkie">Tikkie</option>
-            <option value="Marktplaats">Marktplaats</option>
-            <option value="Website">Website</option>
-            <option value="Overig">Overig</option>
-            <option value="Derving">Derving</option>
-          </select>
-          <input id="custEmail" class="email" placeholder="Klant e-mail (optioneel voor factuur)">
-          <button onclick="book()" class="btn-primary">Boek & Print</button>
-          <div class="muted">Boekt alle regels, print de bon en mailt een PDF factuur.</div>
-        </div>
-      </div>
-    </div>
-  </section>
 
-  <!-- Retour -->
- <section id="view-retour" class="view">
-    <div class="wrap">
-      <div class="panel">
-        <h3>Retour</h3>
-
-        <div style="display:flex; gap:10px; margin-bottom:12px;">
-          <input id="retourBonInput" class="pill" placeholder="Voer bonnummer in (bijv. GL-20251028-002)">
-          <button class="btn btn-primary" onclick="searchReturnReceipt()">Zoek bon</button>
-        </div>
-
-        <div id="retourResult">
-          <div class="muted">Voer een bonnummer in om te beginnen.</div>
-        </div>
-      </div>
-
-      <div class="panel" style="margin-top:16px;">
-        <h4>Recente retouren</h4>
-        <table class="bon-table">
-          <thead>
-            <tr>
-              <th>Retournummer</th>
-              <th>Datum</th>
-              <th class="amount">Bedrag</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="recentReturns">
-            <tr>
-              <td colspan="4" class="muted">Laden…</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </section>
-
-  <!-- Bonnen -->
-  <section id="view-bonnen" class="view">
-    <div class="wrap">
-      <div class="panel">
-        <div class="bonnen-toolbar">
-          <input id="bonSearch" class="bonnen-search" placeholder="Zoek op bonnummer of e-mail...">
-          <button class="btn" onclick="loadReceipts()">Zoek</button>
-        </div>
-        <table class="bon-table">
-          <thead>
-            <tr>
-              <th>Bon</th>
-              <th>Datum</th>
-              <th>Betaalwijze</th>
-              <th class="right">Totaal</th>
-              <th>E-mail</th>
-              <th>Acties</th>
-            </tr>
-          </thead>
-          <tbody id="bonList">
-            <tr><td colspan="6" class="muted">Laden…</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </section>
-
-<!-- Huren -->
-  <section id="view-huur" class="view">
-    <div class="wrap">
-      <div class="panel">
-        <h3>Huren</h3>
-
-        <div class="scanbar" style="margin-bottom:12px;">
-          <input id="huurScan" class="pill" placeholder="Scan huur SKU" />
-          <button class="btn btn-primary" onclick="addHuurScan()">Toevoegen</button>
-        </div>
-
-        <table id="huurTbl">
-          <thead>
-            <tr>
-              <th>SKU</th>
-              <th>Omschrijving</th>
-              <th class="right">Verkoopprijs</th>
-              <th class="right">Huur</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-
-        <div style="margin-top:16px; display:flex; gap:12px; flex-wrap:wrap;">
-          <input id="huurEindDatum" type="date" class="pill" />
-          <input id="huurKlant" class="pill" placeholder="Klant (optioneel)" />
-          <select id="huurBetaalwijze" class="pill" required>
-            <option value="" disabled selected>Betaalwijze</option>
-            <option>PIN</option>
-            <option>Contant</option>
-            <option>Tikkie</option>
-            <option>Overig</option>
-          </select>
-          <div id="huurTotaalBox"
-            style="margin-left:auto; text-align:right; font-size:14px;">
-            <div>Huur: € <span id="huurTotaal">0.00</span></div>
-            <div>Borg: € <span id="huurBorgTotaal">0.00</span></div>
-            <div style="margin-top:4px; font-size:20px; font-weight:600;">
-              Totaal: € <span id="huurEindTotaal">0.00</span>
+          <div class="menu-item has-sub">
+            <div class="menu-main">
+              <span>📊 Voorraad</span><span>▾</span>
+            </div>
+            <div class="submenu">
+              <div data-view="voorraad-zoeken">Zoeken</div>
+              <div data-view="voorraad-inschrijven">Inschrijven</div>
+              <div data-view="telling">Telling</div>
             </div>
           </div>
-          <button class="btn" onclick="printHuurBon()">Huurbon</button>
-          <button id="startHuurBtn" class="btn btn-primary" onclick="startHuur()">Start huur</button>
-        </div>
-      </div>
-      <div class="panel" style="margin-top:16px;">
-        <h3>Actieve huren</h3>
-        <table id="actieveHurenTbl">
-          <thead>
-            <tr>
-              <th>HuurNr</th>
-              <th>Artikelen</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </div>
-  </section>
 
-  <!---/////////////Voorraad//////////////// --->
-
-  <div id="view-voorraad" class="view">
-    <div class="wrap">
-      <h2 style="margin:0 0 12px 0;">Voorraad</h2>
-
-      <div class="panel">
-        <div class="subtabs">
-          <button class="subtab-btn active"
-            id="subtab-inschrijven"
-            onclick="voorraadShowSub('inschrijven')">
-            Inschrijven
-          </button>
-
-          <button class="subtab-btn"
-            id="subtab-zoeken"
-            onclick="voorraadShowSub('zoeken')">
-            Zoeken
-          </button>
-
-          <button class="subtab-btn"
-            id="subtab-tellen"
-            onclick="voorraadShowSub('tellen')">
-            Tellen
-          </button>
-        </div>
-      </div>
-
-
-      <div class="panel" id="voorraad-sub-inschrijven">
-        <div id="voorraad-sub-inschrijven">
-          <div class="grid" style="gap:10px;">
-            <div>
-              <label>Categorie</label>
-              <select id="vTab"></select>
+          <div class="menu-item has-sub">
+            <div class="menu-main">
+              <span>ℹ️ Info</span><span>▾</span>
             </div>
+            <div class="submenu">
 
-            <div>
-              <label>Omschrijving *</label>
-              <input id="vDesc" class="pill" type="text" placeholder="Bijv. Titleist driver..." />
+              <div class="menu-item has-sub">
+                <div class="menu-main">
+                  <span>Golfclubs</span><span>▾</span>
+                </div>
+                <div class="submenu">
+                  <div data-view="info-lofts">Lofts</div>
+                  <div data-view="info-lengtes">Lengtes</div>
+                  <div data-view="info-shafts">Shafts</div>
+                </div>
+              </div>
+
+              <div data-view="inkoop-partners">Inkoop partners</div>
             </div>
+          </div>
 
-            <div style="display:flex; gap:10px;">
-              <div style="flex:1;">
-                <label>Aankoopprijs *</label>
-                <input id="vBuy" class="pill" type="number" step="0.01" placeholder="0.00" />
-              </div>
-              <div style="flex:1;">
-                <label>Verwachte verkoop *</label>
-                <input id="vExpected" class="pill" type="number" step="0.01" placeholder="0.00" />
-              </div>
+          <div class="menu-item has-sub">
+            <div class="menu-main">
+              <span>💼 Sessie</span><span>▾</span>
             </div>
-
-            <div style="display:flex; gap:10px;">
-              <div style="flex:1;">
-                <label>Partij (optioneel)</label>
-                <input id="vParty" class="pill" type="text" placeholder="Bijv. P-2026-01" />
-              </div>
-              <div style="flex:1;">
-                <label>Kanaal (optioneel)</label>
-                <input id="vChannel" class="pill" type="text" placeholder="Bijv. winkel / mp / web" />
-              </div>
+            <div class="submenu">
+              <div data-view="sessie-vandaag">Overzicht vandaag</div>
+              <div data-view="kas-overzicht">Kas overzicht</div>
             </div>
+          </div>
 
-            <button class="btn btn-primary" onclick="voorraadCreateItem()">Toevoegen</button>
+          <div class="menu-item has-sub">
+            <div class="menu-main">
+              <span>📈 Analytics</span><span>▾</span>
+            </div>
+            <div class="submenu">
+              <div data-view="analytics-sessie">Maand overzicht</div>
+              <div data-view="analytics-voorraad">Voorraad waarde</div>
+              <div data-view="analytics-website">Website</div>
+            </div>
+          </div>
 
-            <div id="vCreateMsg" class="muted"></div>
+          <div class="menu-item" data-view="instellingen">⚙️ Instellingen</div>
 
-            <hr style="opacity:.2" />
+        </nav>
+      </aside>
+
+      <!-- CONTENT PLACEHOLDER -->
+      <main class="content">
+
+        <!-- KASSA (nieuw container, oude content volgt) -->
+        <section id="view-kassa" class="view active">
+          <div class="wrap">
             <div class="panel">
-              <div style="display:flex; justify-content:space-between; align-items:center;">
-                <strong>Meest recent toegevoegd</strong>
-                <button class="btn" onclick="voorraadLoadRecent()">Ververs</button>
+              <div class="scanbar">
+                <input id="scan" class="pill" placeholder="Scan of typ SKU" autofocus />
+                <button class="btn btn-scan" onclick="addScan()">Toevoegen</button>
+                <button class="btn btn-cam" onclick="toggleCamera()" id="camBtn">Camera</button>
               </div>
-            </div>
 
-            <div class="table-wrap">
-              <table class="table" id="vRecentTable">
+              <div id="cameraWrap"><video id="preview" playsinline></video></div>
+
+              <table id="cartTbl">
                 <thead>
                   <tr>
-                    <th>SKU</th><th>Tab</th><th>Datum</th><th>Omschrijving</th>
-                    <th class="right">Inkoop</th><th class="right">Verwacht</th><th>Partij</th><th>Kanaal</th>
+                    <th style="width:120px">SKU</th>
+                    <th>Omschrijving</th>
+                    <th class="right" style="width:140px">Prijs</th>
+                    <th class="center" style="width:110px">Aantal</th>
+                    <th class="right" style="width:140px">Subtotaal</th>
+                    <th style="width:60px"></th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+                <tfoot>
+                  <tr>
+                    <td colspan="4" class="right muted">Totaal (sub)</td>
+                    <td id="total" class="right">€ 0,00</td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+
+          <!-- Sticky footer -->
+          <div class="footer">
+            <div class="footer-inner">
+              <div class="footer-left">
+                <div class="total-big">Totaal: <span id="totalBig">€ 0,00</span></div>
+                <div class="item-count" id="itemCount">0 artikelen</div>
+                <div id="activeCodeStatus" class="muted" style="margin-top:6px;margin-bottom:20px;"></div>
+                <div class="actions">
+                  <!---<button class="btn" onclick="openEndSessionModal()">Sessie afsluiten</button>
+                  <button class="btn btn-ghost" onclick="refreshNow()">Vernieuw</button>--->
+                  <button class="btn btn-danger" onclick="newCart()" title="Nieuwe verkoop (reset)">Nieuwe verkoop</button>
+                </div>
+              </div>
+            
+              <div class="code-panel-wrapper">
+                <div class="code-panel code-grid">
+                  <div class="code-left">
+                    <h3>Korting/Cadeaubon</h3>
+                    <input id="codeInput" type="text" class="code-input" placeholder="Scan of plak code…">
+                    <div id="codeResult" class="code-result muted"></div>
+                  </div>
+                  <div class="code-right">
+                    <h3> </h3>
+                    <button id="codeCheckBtn" class="btn btn-secondary code-btn" onclick="lookupCodeUi()">Check</button>
+                    <button id="codeApplyBtn" class="btn btn-primary code-btn" onclick="applyCodeUi()">Toepassen</button>
+                    <button id="codeClearBtn" class="btn btn-danger code-btn" style="visibility:hidden;" onclick="clearActiveCodeUi()">Verwijderen</button>
+                  </div>
+                </div>
+              </div>
+              <div class="footer-right">
+                <label for="pay">Selecteer betaalwijze</label>
+                <select id="pay">
+                  <option value="" selected>Betaalwijze</option>
+                  <option value="PIN">PIN</option>
+                  <option value="Contant">Contant</option>
+                  <option value="Tikkie">Tikkie</option>
+                  <option value="Marktplaats">Marktplaats</option>
+                  <option value="Website">Website</option>
+                  <option value="Overig">Overig</option>
+                  <option value="Derving">Derving</option>
+                </select>
+                <input id="custEmail" class="email" placeholder="Klant e-mail (optioneel voor factuur)">
+                <button onclick="book()" class="btn-primary">Boek & Print</button>
+                <div class="muted">Boekt alle regels, print de bon en mailt een PDF factuur.</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Retour -->
+        <section id="view-retour" class="view">
+          <div class="wrap">
+            <div class="panel">
+              <h3>Retour</h3>
+
+              <div style="display:flex; gap:10px; margin-bottom:12px;">
+                <input id="retourBonInput" class="pill" placeholder="Voer bonnummer in (bijv. GL-20251028-002)">
+                <button class="btn btn-primary" onclick="searchReturnReceipt()">Zoek bon</button>
+              </div>
+
+              <div id="retourSkeleton" style="display:none;">
+                <div class="skeleton skeleton-row"></div>
+                <div class="skeleton skeleton-row"></div>
+              </div>
+
+              <div id="retourResult">
+                <div class="muted">Voer een bonnummer in om te beginnen.</div>
+              </div>
+            </div>
+
+            <div class="panel" style="margin-top:16px;">
+              <h4>Recente retouren</h4>
+              <table class="bon-table">
+                <thead>
+                  <tr>
+                    <th>Retournummer</th>
+                    <th>Datum</th>
+                    <th class="amount">Bedrag</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="recentReturns">
+                  <td colspan="9">
+                    <div class="skeleton skeleton-row-sm"></div>
+                    <div class="skeleton skeleton-row-sm"></div>
+                    <div class="skeleton skeleton-row-sm"></div>
+                  </td>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- Bonnen -->
+        <section id="view-bonnen" class="view">
+          <div class="wrap">
+            <div class="panel">
+              <div class="bonnen-toolbar">
+                <input id="bonSearch" class="bonnen-search" placeholder="Zoek op bonnummer of e-mail...">
+                <button class="btn" onclick="loadReceipts()">Zoek</button>
+              </div>
+              <table class="bon-table">
+                <thead>
+                  <tr>
+                    <th>Bon</th>
+                    <th>Datum</th>
+                    <th>Betaalwijze</th>
+                    <th class="right">Totaal</th>
+                    <th>E-mail</th>
+                    <th>Acties</th>
+                  </tr>
+                </thead>
+                <tbody id="bonList">
+                  <tr class="skeleton-table">
+                    <td colspan="6">
+                      <div class="skeleton skeleton-row"></div>
+                      <div class="skeleton skeleton-row"></div>
+                      <div class="skeleton skeleton-row"></div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- Huren -->
+        <section id="view-huren" class="view">
+          <div class="wrap">
+            <div class="panel">
+              <h3>Huren</h3>
+
+              <div class="scanbar" style="margin-bottom:12px;">
+                <input id="huurScan" class="pill" placeholder="Scan huur SKU" />
+                <button class="btn btn-primary" onclick="addHuurScan()">Toevoegen</button>
+              </div>
+
+              <table id="huurTbl">
+                <thead>
+                  <tr>
+                    <th>SKU</th>
+                    <th>Omschrijving</th>
+                    <th class="right">Verkoopprijs</th>
+                    <th class="right">Huur</th>
+                    <th></th>
                   </tr>
                 </thead>
                 <tbody></tbody>
               </table>
+
+              <div style="margin-top:16px; display:flex; gap:12px; flex-wrap:wrap;">
+                <input id="huurEindDatum" type="date" class="pill" />
+                <input id="huurKlant" class="pill" placeholder="Klant (optioneel)" />
+                <select id="huurBetaalwijze" class="pill" required>
+                  <option value="" disabled selected>Betaalwijze</option>
+                  <option>PIN</option>
+                  <option>Contant</option>
+                  <option>Tikkie</option>
+                  <option>Overig</option>
+                </select>
+                <div id="huurTotaalBox"
+                  style="margin-left:auto; text-align:right; font-size:14px;">
+                  <div>Huur: € <span id="huurTotaal">0.00</span></div>
+                  <div>Borg: € <span id="huurBorgTotaal">0.00</span></div>
+                  <div style="margin-top:4px; font-size:20px; font-weight:600;">
+                    Totaal: € <span id="huurEindTotaal">0.00</span>
+                  </div>
+                </div>
+                <button class="btn" onclick="printHuurBon()">Huurbon</button>
+                <button id="startHuurBtn" class="btn btn-primary" onclick="startHuur()">Start huur</button>
+              </div>
+            </div>
+            <div class="panel" style="margin-top:16px;">
+              <h3>Actieve huren</h3>
+              <!-- Echte lijst -->
+              <table id="actieveHurenTbl">
+                <thead>
+                  <tr>
+                    <th>HuurNr</th>
+                    <th>Artikelen</th>
+                    <th></th>
+                  </tr>
+                </thead>
+
+                <!-- Skeleton rows -->
+                <tbody id="huurSkeletonBody" hidden>
+                  <tr>
+                    <td colspan="3">
+                      <div class="skeleton skeleton-row"></div>
+                      <div class="skeleton skeleton-row"></div>
+                      <div class="skeleton skeleton-row"></div>
+                    </td>
+                  </tr>
+                </tbody>
+
+                <!-- Data rows -->
+                <tbody id="actieveHurenBody"></tbody>
+              </table>
             </div>
           </div>
-        </div>
-      </div>
+        </section>
 
-      <div class="panel" id="voorraad-sub-zoeken" style="display:none;">
-        <h3 style="margin-top:0;">Voorraad zoeken</h3>
+        <section id="view-cadeaubonnen" class="view">
+          <h1>Cadeaubonnen overzicht volgt</h1>
+        </section>
 
-        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
-          <div style="flex:2; min-width:240px; position:relative;">
-            <label>Zoek (SKU / omschrijving / partij / kanaal)</label>
-            <input id="voorraadSearchInput" class="pill" placeholder="Typ om te zoeken..." />
+        <section id="view-kortingen" class="view">
+          <h1>Kortingen overzicht volgt</h1>
+        </section>
 
-            <!-- live dropdown (type-ahead) -->
-            <div id="voorraadSearchSuggest"
-              style="position:absolute; left:0; right:0; top:78px; z-index:60; background:#fff; border:1px solid var(--border); border-radius:10px; display:none; overflow:hidden; box-shadow:0 8px 18px rgba(0,0,0,.08);">
+        <!---/////////////Voorraad//////////////// --->
+
+        <section id="view-voorraad-inschrijven" class="view">
+          <div class="wrap">
+            <h2 style="margin:0 0 12px 0;">Voorraad</h2>
+            <div class="panel">
+              <div id="voorraad-sub-inschrijven">
+                <div class="grid" style="gap:10px;">
+                  <div>
+                    <label>Categorie</label>
+                    <select id="vTab"></select>
+                  </div>
+
+                  <div>
+                    <label>Omschrijving *</label>
+                    <input id="vDesc" class="pill" type="text" placeholder="Bijv. Titleist driver..." />
+                  </div>
+
+                  <div style="display:flex; gap:10px;">
+                    <div style="flex:1;">
+                      <label>Aankoopprijs *</label>
+                      <input id="vBuy" class="pill" type="number" step="0.01" placeholder="0.00" />
+                    </div>
+                    <div style="flex:1;">
+                      <label>Verwachte verkoop *</label>
+                      <input id="vExpected" class="pill" type="number" step="0.01" placeholder="0.00" />
+                    </div>
+                  </div>
+
+                  <div style="display:flex; gap:10px;">
+                    <div style="flex:1;">
+                      <label>Partij (optioneel)</label>
+                      <input id="vParty" class="pill" type="text" placeholder="Bijv. P-2026-01" />
+                    </div>
+                    <div style="flex:1;">
+                      <label>Kanaal (optioneel)</label>
+                      <input id="vChannel" class="pill" type="text" placeholder="Bijv. winkel / mp / web" />
+                    </div>
+                  </div>
+
+                  <button class="btn btn-primary" onclick="voorraadCreateItem()">Toevoegen</button>
+
+                  <div id="vCreateMsg" class="muted"></div>
+
+                  <hr style="opacity:.2" />
+                  <div class="panel">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                      <strong>Meest recent toegevoegd</strong>
+                      <button class="btn" onclick="voorraadLoadRecent()">Ververs</button>
+                    </div>
+                  </div>
+
+                  <div class="table-wrap">
+                    <table class="table" id="vRecentTable">
+                      <thead>
+                        <tr>
+                          <th>SKU</th>
+                          <th>Tab</th>
+                          <th>Datum</th>
+                          <th>Omschrijving</th>
+                          <th class="right">Inkoop</th>
+                          <th class="right">Verwacht</th>
+                          <th>Partij</th>
+                          <th>Kanaal</th>
+                        </tr>
+                      </thead>
+
+                      <!-- Skeleton rows -->
+                      <tbody id="vRecentSkeleton" hidden>
+                        <tr>
+                          <td colspan="8">
+                            <div class="skeleton skeleton-row"></div>
+                            <div class="skeleton skeleton-row"></div>
+                            <div class="skeleton skeleton-row"></div>
+                          </td>
+                        </tr>
+                      </tbody>
+
+                      <!-- Data rows -->
+                      <tbody id="vRecentBody"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
+        </section>
 
-          <div style="flex:1; min-width:160px;">
-            <label>Status</label>
-            <select id="voorraadFilterStatus">
-              <option value="ALL" selected>Alles</option>
-              <option value="FREE">Alleen vrij</option>
-              <option value="SOLD">Alleen verkocht</option>
-            </select>
+        <section id="view-voorraad-zoeken" class="view">
+          <div class="wrap">
+            <div class="panel" id="voorraad-sub-zoeken">
+              <h3 style="margin-top:0;">Voorraad zoeken</h3>
+
+              <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
+                <div style="flex:2; min-width:240px; position:relative;">
+                  <label>Zoek (SKU / omschrijving / partij / kanaal)</label>
+                  <input id="voorraadSearchInput" class="pill" placeholder="Typ om te zoeken..." />
+
+                  <!-- live dropdown (type-ahead) -->
+                  <div id="voorraadSearchSuggest"
+                    style="position:absolute; left:0; right:0; top:78px; z-index:60; background:#fff; border:1px solid var(--border); border-radius:10px; display:none; overflow:hidden; box-shadow:0 8px 18px rgba(0,0,0,.08);">
+                  </div>
+                </div>
+
+                <div style="flex:1; min-width:160px;">
+                  <label>Status</label>
+                  <select id="voorraadFilterStatus">
+                    <option value="ALL" selected>Alles</option>
+                    <option value="FREE">Alleen vrij</option>
+                    <option value="SOLD">Alleen verkocht</option>
+                  </select>
+                </div>
+
+                <div style="flex:1; min-width:160px;">
+                  <label>Tab</label>
+                  <select id="voorraadFilterTab">
+                    <option value="ALL" selected>Alle tabs</option>
+                    <option value="Clubs">Clubs</option>
+                    <option value="Sets">Sets</option>
+                    <option value="Tassen">Tassen</option>
+                    <option value="Trolley's">Trolley's</option>
+                    <option value="Overig">Overig</option>
+                    <option value="Diensten">Diensten</option>
+                  </select>
+                </div>
+
+                <button class="btn" onclick="voorraadSearchDo(true)">Zoek</button>
+              </div>
+
+              <div id="voorraadSearchMeta" class="muted" style="margin-top:10px;"></div>
+
+              <div class="table-wrap" style="margin-top:10px;">
+                <table class="table" id="voorraadSearchTable">
+                  <thead>
+                    <tr>
+                      <th>SKU</th>
+                      <th>Tab</th>
+                      <th>Omschrijving</th>
+                      <th class="right">Inkoop</th>
+                      <th class="right">Verwacht</th>
+                      <th>Status</th>
+                      <th>Partij</th>
+                      <th>Kanaal</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="voorraadSearchResults">
+                    <tr><td colspan="9" class="muted">Typ om te zoeken…</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
+        </section>
 
-          <div style="flex:1; min-width:160px;">
-            <label>Tab</label>
-            <select id="voorraadFilterTab">
-              <option value="ALL" selected>Alle tabs</option>
-              <option value="Clubs">Clubs</option>
-              <option value="Sets">Sets</option>
-              <option value="Tassen">Tassen</option>
-              <option value="Trolley's">Trolley's</option>
-              <option value="Overig">Overig</option>
-              <option value="Diensten">Diensten</option>
-            </select>
+        <section id="view-telling" class="view">
+          <div class="wrap">
+            <div id="voorraad-sub-tellen">
+              <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                <button class="btn primary" id="btnTellenStart" onclick="tellenStart()">Start telling</button>
+                <button class="btn" id="btnTellenFinish" onclick="tellenFinish(false)">Telling afronden</button>
+                <button class="btn danger" id="btnTellenForce" onclick="tellenFinish(true)">Doorgaan (force)</button>
+                <!---<button class="btn" onclick="printTelling()">Print telling</button>--->
+                <div id="tellenMeta" class="muted"></div>
+              </div>
+
+              <div id="tellenMsg" class="muted" style="margin-top:8px;"></div>
+
+              <div id="tellenStatus" class="tellen-status hidden"></div>
+
+              <div class="scanbar" id="tellenScanbar" style="margin-top:12px;">
+                <input
+                  id="tellenSku"
+                  class="pill"
+                  type="text"
+                  placeholder="Scan of typ SKU"
+                  onkeydown="if(event.key==='Enter'){tellenScan();}"
+                  autofocus
+                />
+                <button class="btn btn-primary" onclick="tellenScan()">Toevoegen</button>
+              </div>
+
+              <div id="tellenMsg" class="muted" style="margin-top:8px;"></div>
+
+              <div id="tellingLiveStatus" class="panel" style="margin-top:10px;">
+                <strong>Status telling</strong>
+                <div id="tellingLiveText" class="muted">Nog geen scans</div>
+                <ul id="tellingMissingList" class="muted" style="margin-top:6px;"></ul>
+                <button class="btn btn-secondary"
+                  onclick="tellingOpenMissingModal()"
+                  style="margin-top:6px;">
+                  Toon alle
+                </button>
+              </div>
+
+              <div style="margin-top:10px;" class="table-wrap">
+                <table class="table" id="tellenTable">
+                  <thead>
+                    <tr>
+                      <th>SKU</th><th>Tab</th><th>Omschrijving</th><th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
           </div>
+        </section>
 
-          <button class="btn" onclick="voorraadSearchDo(true)">Zoek</button>
-        </div>
+        <section id="view-info-lofts" class="view">
+          <h1>Loft INfo Volgt</h1>
+        </section>
 
-        <div id="voorraadSearchMeta" class="muted" style="margin-top:10px;"></div>
+        <section id="view-info-lengtes" class="view">
+           <h1>Lengte INfo Volgt</h1>
+        </section>
 
-        <div class="table-wrap" style="margin-top:10px;">
-          <table class="table" id="voorraadSearchTable">
-            <thead>
-              <tr>
-                <th>SKU</th>
-                <th>Tab</th>
-                <th>Omschrijving</th>
-                <th class="right">Inkoop</th>
-                <th class="right">Verwacht</th>
-                <th>Status</th>
-                <th>Partij</th>
-                <th>Kanaal</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="voorraadSearchResults">
-              <tr><td colspan="9" class="muted">Typ om te zoeken…</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+        <section id="view-info-shafts" class="view">
+          <h1>Shaft INfo Volgt</h1>
+        </section>
 
-      <div id="voorraad-sub-tellen" style="display:none;">
-        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-          <button class="btn primary" onclick="tellenStart()">Start telling</button>
-          <button class="btn" id="btnTellenFinish" onclick="tellenFinish(false)">Telling afronden</button>
-          <button class="btn danger" id="btnTellenForce" onclick="tellenFinish(true)">Doorgaan (force)</button>
-          <!---<button class="btn" onclick="printTelling()">Print telling</button>--->
-          <div id="tellenMeta" class="muted"></div>
-          <div id="tellenMsg" class="muted" style="margin-top:8px;"></div>
-        </div>
+        <section id="view-inkoop-partners" class="view">
+          <h1>Inkoop partners Info Volgt</h1>
+        </section>
 
-        <div id="tellenStatus" class="tellen-status hidden"></div>
+        <!-- Sessie -->
+        <section id="view-sessie-vandaag" class="view">
 
-        <div class="scanbar" id="tellenScanbar" style="margin-top:12px;">
-          <input
-            id="tellenSku"
-            class="pill"
-            type="text"
-            placeholder="Scan of typ SKU"
-            onkeydown="if(event.key==='Enter'){tellenScan();}"
-            autofocus
-          />
-          <button class="btn btn-primary" onclick="tellenScan()">Toevoegen</button>
-        </div>
+        </section>
 
-        <div id="tellenMsg" class="muted" style="margin-top:8px;"></div>
+        <section id="view-kas-overzicht" class="view">
+          <h1>Kassalade overzicht</h1>
+        </section>
 
-        <div style="margin-top:10px;" class="table-wrap">
-          <table class="table" id="tellenTable">
-            <thead>
-              <tr>
-                <th>SKU</th><th>Tab</th><th>Omschrijving</th><th>Status</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
+        <section id="view-analytics-sessie" class="view">
+          <div class="wrap">
+            <div class="sessie-grid">
+              <!-- Header -->
+              <div class="sessie-card col-12" id="sessieHeader">
+                <div class="skeleton skel-line" style="width:220px"></div>
+                <div class="skeleton skel-line" style="width:160px; margin-top:6px"></div>
+              </div>
+
+              <!-- Vandaag -->
+              <div class="sessie-card col-4">
+                <h4>Vandaag</h4>
+                <div id="sessieToday">
+                  <div class="skeleton skel-big"></div>
+                  <div class="skeleton skel-line"></div>
+                  <div class="skeleton skel-line"></div>
+                  <div class="skeleton skel-line"></div>
+                </div>
+              </div>
+
+              <!-- Kas -->
+              <div class="sessie-card col-4">
+                <h4>Kas</h4>
+                <div id="sessieCash">
+                  <div class="skeleton skel-big"></div>
+                  <div class="skeleton skel-line"></div>
+                  <div class="skeleton skel-line"></div>
+                  <div class="skeleton skel-line"></div>
+                </div>
+              </div>
+
+              <!-- Omzet -->
+              <div class="sessie-card col-4">
+                <h4>Omzet</h4>
+                <div id="sessieTotals">
+                  <div class="skeleton skel-big"></div>
+                  <div class="skeleton skel-line"></div>
+                  <div class="skeleton skel-line"></div>
+                  <div class="skeleton skel-line"></div>
+                </div>
+              </div>
+
+              <!-- KPI + Donut layout -->
+              <div class="sessie-card col-12">
+                <div class="sessie-kpi-grid">
+
+                  <!-- Donut chart -->
+                  <div class="sessie-donut">
+                    <h4 id="donutTitle">Transacties</h4>
+
+                    <!-- Donut skeleton -->
+                    <div id="donutSkeleton" class="skeleton skel-chart"></div>
+
+                    <!-- Echte donut -->
+                    <canvas id="paymentDonutChart" height="220" style="display:none"></canvas>
+                  </div>
+
+                  <!-- KPI row 1 -->
+                  <div class="sessie-kpi">
+                    <div class="muted">Maand omzet</div>
+                    <div class="skeleton skel-kpi"></div>
+                    <div id="kpiMonthRevenue" class="total-big" style="display:none">€ 0,00</div>
+                  </div>
+
+                  <div class="sessie-kpi">
+                    <div class="muted">Kwartaal omzet (huidig jaar)</div>
+                    <div class="skeleton skel-kpi"></div>
+                    <div id="kpiQuarterRevenueCurrent" class="total-big" style="display:none">€ 0,00</div>
+                  </div>
+
+                  <div class="sessie-kpi">
+                    <div class="muted">YTD omzet (huidig jaar)</div>
+                    <div class="skeleton skel-kpi"></div>
+                    <div id="kpiYtdRevenueCurrent" class="total-big" style="display:none">€ 0,00</div>
+                  </div>
+
+                  <!-- KPI row 2 -->
+                  <div class="sessie-kpi">
+                    <div class="muted">Bruto maand winst</div>
+                    <div class="skeleton skel-kpi"></div>
+                    <div id="kpiMonthProfit" class="total-big" style="display:none">€ 0,00</div>
+                  </div>
+
+                  <div class="sessie-kpi">
+                    <div class="muted">Kwartaal omzet (vorig jaar)</div>
+                    <div class="skeleton skel-kpi"></div>
+                    <div id="kpiQuarterRevenuePrev" class="total-big" style="display:none">€ 0,00</div>
+                  </div>
+
+                  <div class="sessie-kpi">
+                    <div class="muted">YTD omzet (vorig jaar)</div>
+                    <div class="skeleton skel-kpi"></div>
+                    <div id="kpiYtdRevenuePrev" class="total-big" style="display:none">€ 0,00</div>
+                  </div>
+
+                </div>
+              </div>
+
+              <!-- Maandomzet grafiek -->
+              <div class="sessie-card col-12">
+                <h4>Maandomzet per dag</h4>
+
+                <div style="display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap; margin-top:12px;">
+                  <div>
+                    <label class="muted" style="display:block; margin-bottom:6px;">Maand</label>
+                    <select id="sessieMonthSelect" onchange="onSessionMonthChange()"></select>
+                  </div>
+                </div>
+
+                <!-- Chart skeleton -->
+                <div id="monthChartSkeleton" class="skeleton skel-chart" style="margin-top:12px"></div>
+
+                <!-- Echte chart -->
+                <canvas id="monthChart" height="90" style="display:none"></canvas>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <section id="view-analytics-voorraad" class="view">
+
+        </section>
+
+        <section id="view-analytics-website" class="view">
+
+        </section>
+
+        <section id="view-instellingen" class="view">
+          <h1>Instellingen volgen</h1>
+        </section>
+
+      </main>
 
     </div>
+
+  
+  <div id="legacy-app">
+    <button class="tab-btn active" data-view="pos">Kassa</button>
+    <button class="tab-btn" data-view="retour">Retour</button>
+    <button class="tab-btn" data-view="bonnen">Bonnen</button>
+    <button class="tab-btn" data-view="huur">Huren</button>
+    <button class="tab-btn" data-view="voorraad">Voorraad</button>
   </div>
-
-
-  <!-- Sessie -->
-  <section id="view-sessie" class="view">
-    <div class="wrap">
-
-      <div class="sessie-grid">
-
-        <!-- Header -->
-        <div class="sessie-card col-12" id="sessieHeader">
-          <div class="skeleton skel-line" style="width:220px"></div>
-          <div class="skeleton skel-line" style="width:160px; margin-top:6px"></div>
-        </div>
-
-        <!-- Vandaag -->
-        <div class="sessie-card col-4">
-          <h4>Vandaag</h4>
-          <div id="sessieToday">
-            <div class="skeleton skel-big"></div>
-            <div class="skeleton skel-line"></div>
-            <div class="skeleton skel-line"></div>
-            <div class="skeleton skel-line"></div>
-          </div>
-        </div>
-
-        <!-- Kas -->
-        <div class="sessie-card col-4">
-          <h4>Kas</h4>
-          <div id="sessieCash">
-            <div class="skeleton skel-big"></div>
-            <div class="skeleton skel-line"></div>
-            <div class="skeleton skel-line"></div>
-            <div class="skeleton skel-line"></div>
-          </div>
-        </div>
-
-        <!-- Omzet -->
-        <div class="sessie-card col-4">
-          <h4>Omzet</h4>
-          <div id="sessieTotals">
-            <div class="skeleton skel-big"></div>
-            <div class="skeleton skel-line"></div>
-            <div class="skeleton skel-line"></div>
-            <div class="skeleton skel-line"></div>
-          </div>
-        </div>
-
-        <!-- KPI + Donut layout -->
-        <div class="sessie-card col-12">
-          <div class="sessie-kpi-grid">
-
-            <!-- Donut chart -->
-            <div class="sessie-donut">
-              <h4 id="donutTitle">Transacties</h4>
-
-              <!-- Donut skeleton -->
-              <div id="donutSkeleton" class="skeleton skel-chart"></div>
-
-              <!-- Echte donut -->
-              <canvas id="paymentDonutChart" height="220" style="display:none"></canvas>
-            </div>
-
-            <!-- KPI row 1 -->
-            <div class="sessie-kpi">
-              <div class="muted">Maand omzet</div>
-              <div class="skeleton skel-kpi"></div>
-              <div id="kpiMonthRevenue" class="total-big" style="display:none">€ 0,00</div>
-            </div>
-
-            <div class="sessie-kpi">
-              <div class="muted">Kwartaal omzet (huidig jaar)</div>
-              <div class="skeleton skel-kpi"></div>
-              <div id="kpiQuarterRevenueCurrent" class="total-big" style="display:none">€ 0,00</div>
-            </div>
-
-            <div class="sessie-kpi">
-              <div class="muted">YTD omzet (huidig jaar)</div>
-              <div class="skeleton skel-kpi"></div>
-              <div id="kpiYtdRevenueCurrent" class="total-big" style="display:none">€ 0,00</div>
-            </div>
-
-            <!-- KPI row 2 -->
-            <div class="sessie-kpi">
-              <div class="muted">Bruto maand winst</div>
-              <div class="skeleton skel-kpi"></div>
-              <div id="kpiMonthProfit" class="total-big" style="display:none">€ 0,00</div>
-            </div>
-
-            <div class="sessie-kpi">
-              <div class="muted">Kwartaal omzet (vorig jaar)</div>
-              <div class="skeleton skel-kpi"></div>
-              <div id="kpiQuarterRevenuePrev" class="total-big" style="display:none">€ 0,00</div>
-            </div>
-
-            <div class="sessie-kpi">
-              <div class="muted">YTD omzet (vorig jaar)</div>
-              <div class="skeleton skel-kpi"></div>
-              <div id="kpiYtdRevenuePrev" class="total-big" style="display:none">€ 0,00</div>
-            </div>
-
-          </div>
-        </div>
-
-        <!-- Maandomzet grafiek -->
-        <div class="sessie-card col-12">
-          <h4>Maandomzet per dag</h4>
-
-          <div style="display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap; margin-top:12px;">
-            <div>
-              <label class="muted" style="display:block; margin-bottom:6px;">Maand</label>
-              <select id="sessieMonthSelect" onchange="onSessionMonthChange()"></select>
-            </div>
-          </div>
-
-          <!-- Chart skeleton -->
-          <div id="monthChartSkeleton" class="skeleton skel-chart" style="margin-top:12px"></div>
-
-          <!-- Echte chart -->
-          <canvas id="monthChart" height="90" style="display:none"></canvas>
-        </div>
-      </div>
-
-    </div>
-  </section>
-
-
-
-
   <!-- Helpers -->
   <div id="spinner"><div>Bezig…</div></div>
   <div id="toast"></div>
@@ -1410,30 +1910,40 @@
     }*/
 
     function updateTellenButtons(active) {
-      const btnStart  = document.querySelector('[onclick="tellenStart()"]');
+      const btnStart  = document.getElementById('btnTellenStart');
       const btnFinish = document.getElementById('btnTellenFinish');
       const btnForce  = document.getElementById('btnTellenForce');
 
       const scanbar   = document.getElementById('tellenScanbar');
       const scanInput = document.getElementById('tellenSku');
+      const liveStat  = document.getElementById('tellingLiveStatus');
+      const table     = document.getElementById('tellenTable');
 
-      // Start-knop
+      // 🔹 Start-knop
       if (btnStart) {
         btnStart.style.display = active ? 'none' : 'inline-block';
       }
 
-      // Afrond-knoppen
+      // 🔹 Afrond-knoppen
       if (btnFinish) btnFinish.style.display = active ? 'inline-block' : 'none';
       if (btnForce)  btnForce.style.display  = active ? 'inline-block' : 'none';
 
-      // Scanbar
+      // 🔹 Scanbar
       if (scanbar) scanbar.style.display = active ? 'flex' : 'none';
 
-      // Input reset
+      // 🔹 Live status + tabel
+      if (liveStat) liveStat.style.display = active ? 'block' : 'none';
+      if (table)    table.style.display    = active ? 'table' : 'none';
+
+      // 🔹 Input reset + focus
       if (!active && scanInput) {
         scanInput.value = '';
       }
+      if (active && scanInput) {
+        setTimeout(() => scanInput.focus(), 50);
+      }
     }
+
 
     function clearActiveTellingUi() {
       tellenActiveId = null;
@@ -2063,36 +2573,45 @@
   }
 
   function voorraadLoadRecent(){
-    const msg = document.getElementById('vCreateMsg');
+    const msg   = document.getElementById('vCreateMsg');
+    const skel  = document.getElementById('vRecentSkeleton');
+    const body  = document.getElementById('vRecentBody');
 
-    const table = document.getElementById('vRecentTable');
-    if (!table) {
-      if (msg) msg.textContent = 'DEBUG: vRecentTable niet gevonden (check id="vRecentTable").';
+    if (!skel || !body) {
+      if (msg) msg.textContent = 'DEBUG: skeleton/body niet gevonden (check IDs).';
+      console.error('[VOORRAAD] vRecentSkeleton of vRecentBody ontbreekt');
       return;
     }
 
-    const tb = table.querySelector('tbody');
-    if (!tb) {
-      if (msg) msg.textContent = 'DEBUG: vRecentTable tbody niet gevonden.';
-      return;
-    }
+    // 🔹 START loading
+    skel.hidden = false;
+    body.innerHTML = '';
 
-    tb.innerHTML = `<tr><td colspan="8" class="muted">Laden…</td></tr>`;
+    // force repaint (belangrijk bij snelle API)
+    skel.offsetHeight;
 
     google.script.run
       .withSuccessHandler(res => {
         console.log('apiVoorraadListRecent →', res);
 
-        // ✅ Accepteer beide vormen: array OF {ok:true, items:[...]}
-        const items = Array.isArray(res) ? res : (res && Array.isArray(res.items) ? res.items : []);
+        // 🔹 STOP loading
+        skel.hidden = true;
+
+        // Accepteer beide vormen: array OF {ok:true, items:[...]}
+        const items = Array.isArray(res)
+          ? res
+          : (res && Array.isArray(res.items) ? res.items : []);
 
         if (!items.length){
-          tb.innerHTML = `<tr><td colspan="8" class="muted">Geen items gevonden.</td></tr>`;
+          body.innerHTML = `
+            <tr>
+              <td colspan="8" class="muted">Geen items gevonden.</td>
+            </tr>
+          `;
           return;
         }
 
-        tb.innerHTML = items.map(it => {
-          // aankoopdatum kan string of Date zijn
+        body.innerHTML = items.map(it => {
           let d = it.purchaseDate || '';
           if (d instanceof Date) d = d.toLocaleDateString('nl-NL');
 
@@ -2101,7 +2620,7 @@
               <td>${it.sku || ''}</td>
               <td>${it.tab || ''}</td>
               <td>${d || ''}</td>
-              <td>${(it.desc || '').toString()}</td>
+              <td>${String(it.desc || '')}</td>
               <td class="right">${euroView(it.buy)}</td>
               <td class="right">${euroView(it.expected)}</td>
               <td>${it.party || ''}</td>
@@ -2111,9 +2630,18 @@
         }).join('');
       })
       .withFailureHandler(err => {
+        // 🔹 STOP loading (ook bij fout)
+        skel.hidden = true;
+
         const m = (err && err.message) ? err.message : String(err);
         console.error('apiVoorraadListRecent FAILED:', err);
-        tb.innerHTML = `<tr><td colspan="8" class="muted">Fout bij laden: ${m}</td></tr>`;
+
+        body.innerHTML = `
+          <tr>
+            <td colspan="8" class="muted">Fout bij laden: ${m}</td>
+          </tr>
+        `;
+
         if (msg) msg.textContent = 'Recent laden mislukt: ' + m;
       })
       .apiVoorraadListRecent(20);
@@ -2286,6 +2814,7 @@
           status: res.status || ''
         });
         tellenRender();
+        tellingRefreshLiveStatus();
       })
       .withFailureHandler(err => {
         tellenState.unshift({ sku, status: (err && err.message) ? err.message : String(err) });
@@ -2293,6 +2822,57 @@
       })
       .apiVoorraadTellingScan(sku);
   }
+
+  function tellingRefreshLiveStatus(){
+    google.script.run
+      .withSuccessHandler(function(res){
+        if (!res || !res.ok) return;
+
+        document.getElementById('tellingLiveText').textContent =
+          'Getelt: ' + res.scannedCount +
+          ' / ' + res.expectedCount +
+          ' | Te scannen: ' + res.missingCount;
+
+        const ul = document.getElementById('tellingMissingList');
+        ul.innerHTML = '';
+
+        res.missingItems.forEach(item => {
+          const li = document.createElement('li');
+          li.textContent = item.sku + ' – ' + (item.desc || '');
+          ul.appendChild(li);
+        });
+        _tellingAllMissing = res.allMissing || [];
+      })
+      .apiVoorraadTellingLiveStatus();
+  }
+
+  var _tellingAllMissing = [];
+
+  function tellingOpenMissingModal(){
+    const modal = document.getElementById('tellingMissingModal');
+    if (!modal) return;
+
+    const ul = document.getElementById('tellingMissingAllList');
+    ul.innerHTML = '';
+
+    _tellingAllMissing.forEach(item => {
+      const li = document.createElement('li');
+      li.textContent = item.sku + ' – ' + (item.desc || '');
+      ul.appendChild(li);
+    });
+
+    const meta = document.getElementById('tellingMissingMeta');
+    if (meta) meta.textContent = _tellingAllMissing.length + ' artikelen ontbreken';
+
+    modal.style.display = 'flex';
+  }
+
+  function tellingCloseMissingModal(){
+    const modal = document.getElementById('tellingMissingModal');
+    if (modal) modal.style.display = 'none';
+  }
+
+
 
   function tellenFinish(force){
     const msg = document.getElementById('tellenMsg');
@@ -3716,6 +4296,13 @@
       function renderReturnResult(data) {
         const box = document.getElementById('retourResult');
         if (!box) return;
+        // skeleton verbergen
+        const skel = document.getElementById('retourSkeleton');
+        if (skel) {
+          skel.style.display = 'none';
+          skel.innerHTML = '';
+        }
+        box.style.display = 'block';
 
         console.log('[RET] renderReturnResult RAW:', data);
 
@@ -3820,13 +4407,23 @@
           return;
         }
 
-        box.innerHTML = '<div class="muted">Laden…</div>';
+        // skeleton tonen
+        const skel = document.getElementById('retourSkeleton');
+        if (skel) skel.style.display = 'block';
+
+        // resultaat verbergen
+        box.style.display = 'none';
+
 
         google.script.run
           .withSuccessHandler(data => {
             renderReturnResult(data);
           })
           .withFailureHandler(err => {
+            const skel = document.getElementById('retourSkeleton');
+            if (skel) skel.style.display = 'none';
+            box.style.display = 'block';
+
             console.error('[RET] apiReturnGetSafe ERROR:', err);
             box.innerHTML = `<div class="muted">Fout: ${(err && err.message) || err}</div>`;
           })
@@ -3959,12 +4556,17 @@
 
       window.openCancelReturnModal = function (){
         const m = document.getElementById('cancelReturnModal');
-        if (m) m.style.display = 'block';
+        if (!m) return;
+
+        m.style.display = 'block';
+        m.style.zIndex = '5000';
       };
 
       window.closeCancelReturnModal = function (){
         const m = document.getElementById('cancelReturnModal');
-        if (m) m.style.display = 'none';
+        if (!m) return;
+
+        m.style.display = 'none';
       };
 
       window.confirmCancelReturn = function (){
@@ -4012,9 +4614,11 @@
 
         // 2️⃣ laadstatus tonen
         tb.innerHTML = `
-          <tr>
-            <td colspan="4" class="muted" style="text-align:center;">
-              Laden…
+          <tr class="skeleton-table">
+            <td colspan="6">
+              <div class="skeleton skeleton-row"></div>
+              <div class="skeleton skeleton-row"></div>
+              <div class="skeleton skeleton-row"></div>
             </td>
           </tr>
         `;
@@ -4367,19 +4971,24 @@
     }
 
     function loadActieveHuren(){
-      const tb = document.querySelector('#actieveHurenTbl tbody');
-      tb.innerHTML = `
-        <tr>
-          <td colspan="3" style="text-align:center; font-style:italic; color:#6b7280;">
-            Laden…
-          </td>
-        </tr>
-      `;
+      const tb   = document.getElementById('actieveHurenBody');
+      const skel = document.getElementById('huurSkeletonBody');
+
+      if (!tb || !skel) {
+        console.error('[HUREN] tbody/skeleton niet gevonden');
+        return;
+      }
+
+      // 👉 skeleton AAN
+      skel.hidden = false;
+      tb.innerHTML = '';
+
+      // 🔥 force repaint (cruciaal)
+      skel.offsetHeight;
 
       google.script.run
         .withSuccessHandler(list => {
-          tb.innerHTML = '';
-
+          skel.hidden = true;
           if (!list.length) {
             tb.innerHTML = `
               <tr>
@@ -4418,7 +5027,7 @@
           });
         })
         .withFailureHandler(err => {
-          tb.innerHTML = '';
+          skel.hidden = true;
           alert(err.message || err);
         })
         .apiGetActieveHuren();
@@ -4443,74 +5052,22 @@
 
 
 
-  <!-- Tabs + Bonnen loader + hybride 80mm herprint -->
+  <!-- Bonnen loader + hybride 80mm herprint -->
   <script>
-    // Tabs
-    (function(){
-      const tabs = document.querySelectorAll('.tab-btn[data-view]');
-
-      function show(view){
-        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-        document.querySelectorAll('.tab-btn[data-view]').forEach(b => b.classList.remove('active'));
-
-        const btn = document.querySelector('.tab-btn[data-view="'+view+'"]');
-        const sec = document.getElementById('view-'+view);
-
-        if (btn) btn.classList.add('active');
-        if (sec) sec.classList.add('active');
-
-        // Stop altijd eerst
-        stopSessieAutoRefresh();
-
-        if (view === 'bonnen') loadReceipts();
-
-        if (view === 'sessie') {
-          loadSessionDashboard();
-          startSessieAutoRefresh();
-        }
-        if (view === 'retour') {
-          setTimeout(() => {
-            loadRecentReturns();
-          }, 0);
-        }
-        if (view === 'voorraad') {
-          // Zorg dat dropdown + recent lijst altijd opnieuw laden bij openen tab
-          try { voorraadInitTabs(); } catch(e){}
-          try { voorraadLoadRecent(); } catch(e){}
-        }
-      }
-
-      tabs.forEach(b => {
-        b.addEventListener('click', () => {
-          const v = b.dataset.view;
-          show(v);
-          location.hash = v;
-        });
-      });
-
-      // hash deep-link
-      if (location.hash){
-        const v = location.hash.slice(1);
-        if (document.getElementById('view-'+v)) show(v);
-      }
-      // Als sessie-tab actief is bij load → dashboard laden
-      if (location.hash === '#sessie') {
-        loadSessionDashboard();
-      }
-
-      window.addEventListener('hashchange', () => {
-        const v = location.hash.slice(1);
-        if (document.getElementById('view-'+v)) show(v);
-      });
-
-      window.switchView = show;
-    })();
-
     // Bonnen-lijst (hybride gedrag: PDF + 80mm)
     function loadReceipts(){
       const q = (document.getElementById('bonSearch').value || '').trim();
       const list = document.getElementById('bonList');
-      list.innerHTML = '<tr><td colspan="6" class="muted">Laden…</td></tr>';
+      list.innerHTML = `
+        <tr class="skeleton-table">
+          <td colspan="6">
+            <div class="skeleton skeleton-row"></div>
+            <div class="skeleton skeleton-row"></div>
+            <div class="skeleton skeleton-row"></div>
+          </td>
+        </tr>
+      `;
+
 
       google.script.run
         .withSuccessHandler(rows => {
@@ -4789,6 +5346,70 @@
       </html>`; 
     }
   </script>
+  <script>
+    function clip(text, max){
+      text = String(text || '');
+      return text.length > max ? text.slice(0, max - 1) + '…' : text;
+    }
+
+    function buildVoorraadReceipt80mm(data){
+      const h = data.header;
+
+      const row = (a, b, c='') =>
+        `<div class="r">
+          <span class="sku">${a}</span>
+          <span class="desc">${clip(b,20)}</span>
+          ${c !== '' ? `<span class="price">${c}</span>` : ''}
+        </div>`;
+
+      return `
+      <div class="receipt80">
+        <div class="center bold">GOLF LOCKER</div>
+        <div class="center small">${new Date(h.finishedAt).toLocaleString()}</div>
+        <div class="center small">Telling ${h.tellingId}</div>
+
+        <div class="hr"></div>
+
+        <div class="small">
+          Expected: ${h.expectedCount}<br>
+          Counted: ${h.foundCount}
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="section">
+          <div class="title">GETELD</div>
+          ${data.counted.length
+            ? data.counted.map(x => row(x.sku, x.desc, '')).join('')
+            : `<div class="muted small">Geen</div>`
+          }
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="section">
+          <div class="title">MISSEND</div>
+          ${data.missing.length
+            ? data.missing.map(x => row(x.sku, x.desc, '')).join('')
+            : `<div class="muted small">Geen</div>`
+          }
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="section">
+          <div class="title">OVERIG</div>
+          ${data.other.length
+            ? data.other.map(x => row(x.sku || '-', x.desc)).join('')
+            : `<div class="muted small">Geen</div>`
+          }
+        </div>
+
+        <div class="hr"></div>
+        <div class="center small">— einde telling —</div>
+      </div>`;
+    }
+  </script>
 
   <script>
     function showTroephoekBuyPopup(items) {
@@ -4815,7 +5436,7 @@
                     display:flex; align-items:center; justify-content:center;">
           <div style="background:#fff; width:92%; max-width:680px;
                       border-radius:12px; padding:16px;">
-            <h3 style="margin:0 0 12px;">Vul aankoopprijzen in (optioneel)</h3>
+            <h3 style="margin:0 0 12px;">Troephoek – aankoopprijzen (optioneel)</h3>
 
             <div style="max-height:50vh; overflow:auto;">
               <table style="width:100%; border-collapse:collapse;">
@@ -4889,74 +5510,150 @@
   </script>
 
   <script>
-    function clip(text, max){
-      text = String(text || '');
-      return text.length > max ? text.slice(0, max - 1) + '…' : text;
-    }
+    /* =========================================================
+      STAP 1.1 – Sidebar dropdown logic (gl-erp)
+      - werkt op alle niveaus
+      - sluit siblings, niet parents
+    ========================================================= */
 
-    function buildVoorraadReceipt80mm(data){
-      const h = data.header;
+    (function () {
 
-      const row = (a, b, c='') =>
-        `<div class="r">
-          <span class="sku">${a}</span>
-          <span class="desc">${clip(b,20)}</span>
-          ${c !== '' ? `<span class="price">${c}</span>` : ''}
-        </div>`;
+      // Alleen binnen de nieuwe layout
+      const root = document.querySelector('.gl-erp');
+      if (!root) return;
 
-      return `
-      <div class="receipt80">
-        <div class="center bold">GOLF LOCKER</div>
-        <div class="center small">${new Date(h.finishedAt).toLocaleString()}</div>
-        <div class="center small">Telling ${h.tellingId}</div>
+      // Klik op menu-main (dropdown headers)
+      root.querySelectorAll('.menu-item.has-sub > .menu-main').forEach(main => {
+        main.addEventListener('click', e => {
+          e.stopPropagation();
 
-        <div class="hr"></div>
+          const current = main.parentElement;      // .menu-item.has-sub
+          const container = current.parentElement; // .menu of .submenu
 
-        <div class="small">
-          Expected: ${h.expectedCount}<br>
-          Counted: ${h.foundCount}
-        </div>
+          // Sluit alleen siblings op dit niveau
+          container.querySelectorAll(':scope > .menu-item.has-sub.open').forEach(item => {
+            if (item !== current) item.classList.remove('open');
+          });
 
-        <div class="hr"></div>
+          // Toggle huidige
+          current.classList.toggle('open');
+        });
+      });
 
-        <div class="section">
-          <div class="title">GETELD</div>
-          ${data.counted.length
-            ? data.counted.map(x => row(x.sku, x.desc, '')).join('')
-            : `<div class="muted small">Geen</div>`
-          }
-        </div>
-
-        <div class="hr"></div>
-
-        <div class="section">
-          <div class="title">MISSEND</div>
-          ${data.missing.length
-            ? data.missing.map(x => row(x.sku, x.desc, '')).join('')
-            : `<div class="muted small">Geen</div>`
-          }
-        </div>
-
-        <div class="hr"></div>
-
-        <div class="section">
-          <div class="title">OVERIG</div>
-          ${data.other.length
-            ? data.other.map(x => row(x.sku || '-', x.desc)).join('')
-            : `<div class="muted small">Geen</div>`
-          }
-        </div>
-
-        <div class="hr"></div>
-        <div class="center small">— einde telling —</div>
-      </div>`;
-    }
+    })();
   </script>
+
+  <script>
+    /* =========================================================
+      STAP 1.3 – Sidebar view switching (gl-erp)
+    ========================================================= */
+    const STORAGE_KEY = 'gl_pos_active_view';
+
+    (function () {
+
+      const root = document.querySelector('.gl-erp');
+      if (!root) return;
+
+      const views = root.querySelectorAll('.content .view');
+
+      function showView(viewName) {
+        if (!viewName) return;
+
+        // ✅ view onthouden (GAS-proof)
+        sessionStorage.setItem(STORAGE_KEY, viewName);
+
+        // 1. Views tonen/verbergen
+        views.forEach(v => v.classList.remove('active'));
+        const target = document.getElementById('view-' + viewName);
+        if (target) target.classList.add('active');
+
+        // 2. Sidebar active states
+        root.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+        root.querySelectorAll('.submenu > div').forEach(s => s.classList.remove('active'));
+
+        const menuEl = root.querySelector(`[data-view="${viewName}"]`);
+        if (menuEl) {
+          if (menuEl.closest('.submenu')) {
+            menuEl.classList.add('active');
+          }
+          const parentMenu = menuEl.closest('.menu-item');
+          if (parentMenu) parentMenu.classList.add('active');
+
+          let node = menuEl.closest('.menu-item');
+          while (node) {
+            node.classList.add('open');
+            node = node.parentElement.closest('.menu-item');
+          }
+        }
+
+        // 3. 🔥 TRIGGER OUDE LOADERS (CRUCIAAL)
+        try {
+          stopSessieAutoRefresh?.();
+        } catch(e){}
+
+        if (viewName === 'bonnen') {
+          loadReceipts?.();
+        }
+
+        if (viewName === 'retour') {
+          loadRecentReturns?.();
+        }
+
+        if (viewName === 'huren') {
+          loadActieveHuren?.();
+        }
+
+        if (viewName === 'sessie-vandaag') {
+          loadSessionDashboard?.();
+          startSessieAutoRefresh?.();
+        }
+
+        if (viewName === 'analytics-sessie') {
+          loadSessionDashboard?.();
+          startSessieAutoRefresh?.();
+        }
+
+        if (viewName === 'voorraad-zoeken' || viewName === 'voorraad-inschrijven') {
+          try { voorraadInitTabs?.(); } catch(e){}
+          try { voorraadLoadRecent?.(); } catch(e){}
+        }
+
+        if (viewName === 'telling') {
+          updateTellenButtons(false);
+        }
+        
+      }
+
+
+      // Click handlers
+      root.querySelectorAll('[data-view]').forEach(el => {
+        el.addEventListener('click', e => {
+          e.stopPropagation();
+          showView(el.dataset.view);
+
+          // mobile sidebar sluiten
+          document.getElementById('glSidebar')?.classList.remove('open');
+        });
+      });
+
+      // Init: herstel laatste view of fallback
+      const savedView = sessionStorage.getItem(STORAGE_KEY);
+
+      if (savedView) {
+        showView(savedView);
+      } else {
+        showView('kassa'); // fallback
+      }
+
+
+    })();
+  </script>
+
 
 
   <!-- ===== ANNULEER RETOUR MODAL ===== -->
     <div id="cancelReturnModal"
-        style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:200;">
+        style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:5000;">
       <div style="background:#fff; max-width:360px; margin:25vh auto; padding:20px; border-radius:10px;">
         <h3>Retour annuleren?</h3>
         <p class="muted" style="margin:10px 0 16px;">
@@ -4994,6 +5691,25 @@
         </div>
       </div>
     </div>
+
+    <div id="tellingMissingModal"
+      style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:9999; align-items:center; justify-content:center;">
+
+      <div style="background:#fff; width:92%; max-width:600px; border-radius:14px; padding:16px; max-height:80vh; display:flex; flex-direction:column;">
+        
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <h3 style="margin:0;">Ontbrekende artikelen</h3>
+          <button class="btn btn-danger" onclick="tellingCloseMissingModal()">Sluiten</button>
+        </div>
+
+        <div class="muted" id="tellingMissingMeta" style="margin:6px 0 10px;"></div>
+
+        <div style="overflow:auto; border:1px solid var(--border); border-radius:8px; padding:8px;">
+          <ul id="tellingMissingAllList" style="margin:0; padding-left:16px;"></ul>
+        </div>
+      </div>
+    </div>
+
 
     <div id="voorraadEditModal"
       style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:9999; align-items:center; justify-content:center;">

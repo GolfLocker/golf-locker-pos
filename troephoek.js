@@ -50,12 +50,6 @@ const GENERATOR_SKUS = {
     prefix: "SHIP5",
     description: "Verzending",
     price: "14.5"
-  },
-      "2032": {
-    tab: "Diensten",
-    prefix: "2032+",
-    description: "Reparatie",
-    price: "20"
   }
 
   // Extra voorbeelden – je kunt ze later zelf aanzetten / toevoegen:
