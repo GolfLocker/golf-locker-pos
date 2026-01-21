@@ -1181,8 +1181,7 @@
                 <div class="item-count" id="itemCount">0 artikelen</div>
                 <div id="activeCodeStatus" class="muted" style="margin-top:6px;margin-bottom:20px;"></div>
                 <div class="actions">
-                  <!---<button class="btn" onclick="openEndSessionModal()">Sessie afsluiten</button>
-                  <button class="btn btn-ghost" onclick="refreshNow()">Vernieuw</button>--->
+                  <button class="btn btn-ghost" onclick="refreshNow()">Vernieuw</button>
                   <button class="btn btn-danger" onclick="newCart()" title="Nieuwe verkoop (reset)">Nieuwe verkoop</button>
                 </div>
               </div>
@@ -1619,6 +1618,9 @@
 
         <section id="view-kas-overzicht" class="view">
           <h1>Kassalade overzicht</h1>
+          <div>
+            <button class="btn" onclick="openEndSessionModal()">Sessie afsluiten</button>
+          </div>
         </section>
 
         <section id="view-analytics-sessie" class="view">
