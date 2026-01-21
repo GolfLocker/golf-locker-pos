@@ -1,6 +1,6 @@
 /***** CONFIG *****/
 const CONFIG = {
-  excludedSheets: ['Dashboard','Brandstof','Overige kosten','Info','Berekeningen','POS','Charts','Sales','Sales_Lines','Bon','Overige inkomsten','Missende Clubs','Retouren','Kas', 'Verkocht','Codes','Verhuur'], // deze tabs overslaan voor de voorraad-automatisering
+  excludedSheets: ['Dashboard','Brandstof','Overige kosten','Info','Berekeningen','POS','Charts','Sales','Sales_Lines','Bon','Overige inkomsten','Missende Clubs','Retouren','Kas', 'Verkocht','Codes','Verhuur','Inkoop kosten'], // deze tabs overslaan voor de voorraad-automatisering
   headerRow: 1,                  // koprij
   skuCol: 1,                     // kolom A = SKU
   triggerColForSku: 2,           // kolom B triggert SKU-aanmaak

@@ -84,7 +84,7 @@ function _build80mmTicketHtml_(opts) {
   `;
 
   const rowsHtml = (items || []).map(it => {
-    const skuShort = String(it.sku || '').slice(0, 6).padEnd(6, ' ');
+    const skuShort = String(it.sku || '').slice(0, 7).padEnd(7, ' ');
     const descSafe = String(it.desc || '').replace(/</g, '&lt;');
     const price    = Number(it.price || 0);
     return `

@@ -11,6 +11,7 @@
   <link rel="manifest" href="?file=manifest">
   <link rel="apple-touch-icon" href="https://shop.golf-locker.nl/wp-content/uploads/2024/04/Golf-Locker-Logo-1-scaled.png">
   <script src="https://unpkg.com/@zxing/library@0.20.0"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
   <style>
     :root{
@@ -1727,7 +1728,31 @@
 
         <section id="view-analytics-voorraad" class="view">
 
+          <h2>Voorraadwaarde</h2>
+
+          <!-- KPI cards -->
+          <div class="sessie-grid">
+
+            <!-- Live voorraadwaarde -->
+            <div class="sessie-card col-4">
+              <h4>Huidige voorraadwaarde</h4>
+              <div id="voorraad-live-waarde" class="total-big">
+              <div class="skeleton skel-kpi"></div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Chart card -->
+          <div class="sessie-card col-4" style="margin-top:16px">
+             <h4>Voorraadwaarde per maand</h4>
+            <div style="position:relative;height:300px">
+              <canvas id="voorraadwaarde-chart"></canvas>
+            </div>
+          </div>
+
         </section>
+
 
         <section id="view-analytics-website" class="view">
 
@@ -3883,6 +3908,108 @@
     loadSessionDashboard();
   }
 
+  function loadAnalyticsVoorraad() {
+    const elLive = document.getElementById('voorraad-live-waarde');
+    if (!elLive) return;
+
+    // reset
+    elLive.textContent = '—';
+
+    google.script.run
+      .withSuccessHandler(res => {
+        if (!res || res.ok !== true) {
+          elLive.textContent = '—';
+          return;
+        }
+
+        // 🔥 ALLEEN live waarde uit backend (Dashboard!B6)
+        const liveValue = Number(res.currentValue) || 0;
+
+        elLive.textContent =
+          '€ ' + liveValue.toLocaleString('nl-NL', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+          });
+
+        // 🔥 history uitsluitend voor chart (niet voor KPI)
+        window._voorraadChartData = Array.isArray(res.history)
+          ? res.history
+          : [];
+        renderVoorraadWaardeChart();
+      })
+      .apiGetVoorraadWaardeAnalytics();
+  }
+
+  function renderVoorraadWaardeChart() {
+    if (typeof Chart === 'undefined') {
+      console.warn('Chart.js not loaded yet');
+      return;
+    }
+
+    const canvas = document.getElementById('voorraadwaarde-chart');
+    if (!canvas) return;
+
+    const data = Array.isArray(window._voorraadChartData)
+      ? window._voorraadChartData
+      : [];
+
+    if (!data.length) return;
+
+    const labels = data.map(d => d.date);
+    const values = data.map(d => Number(d.value) || 0);
+
+    // Oude chart opruimen (bij view-switch)
+    if (window._voorraadChartInstance) {
+      window._voorraadChartInstance.destroy();
+      window._voorraadChartInstance = null;
+    }
+
+    window._voorraadChartInstance = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Voorraadwaarde',
+          data: values,
+          tension: 0.3,
+          fill: true,
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          mode: 'index',
+          intersect: false
+        },
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            callbacks: {
+              label: ctx =>
+                '€ ' + Number(ctx.raw || 0).toLocaleString('nl-NL')
+            }
+          }
+        },
+        scales: {
+          y: {
+            ticks: {
+              callback: v =>
+                '€ ' + Number(v).toLocaleString('nl-NL')
+            }
+          }
+        }
+      }
+    });
+  }
+
+
+
+
+
 
     scan.addEventListener('keydown', e=>{
       if (e.key === 'Enter') addScan();
@@ -5612,6 +5739,12 @@
           loadSessionDashboard?.();
           startSessieAutoRefresh?.();
         }
+        
+        if (viewName === 'analytics-voorraad') {
+          loadAnalyticsVoorraad();
+          renderVoorraadWaardeChart();
+        }
+
 
         if (viewName === 'voorraad-zoeken' || viewName === 'voorraad-inschrijven') {
           try { voorraadInitTabs?.(); } catch(e){}

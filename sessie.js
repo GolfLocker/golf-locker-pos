@@ -540,5 +540,80 @@ function apiActivateSession() {
   return { ok: true, reused: false };
 }
 
+/**
+ * ==============================
+ * VOORRAADWAARDE ANALYTICS
+ * Bron: Dashboard!Z (datum) + AA (waarde)
+ * ==============================
+ */
+function apiGetVoorraadWaardeAnalytics() {
+  const ss = SpreadsheetApp.getActive();
+  const sh = ss.getSheetByName('Dashboard');
+  if (!sh) {
+    return { ok: false, error: 'Dashboard sheet niet gevonden' };
+  }
+
+  const lastRow = sh.getLastRow();
+  if (lastRow < 2) {
+    return { ok: true, currentValue: 0, history: [] };
+  }
+
+  // Z = 26, AA = 27
+  const startRow = 4;
+
+  const data = sh
+    .getRange(startRow, 26, lastRow - startRow + 1, 2)
+    .getValues();
+
+
+  const history = [];
+
+  data.forEach(r => {
+    const rawDate = r[0];
+    const rawValue = r[1];
+
+    if (!rawDate || rawValue === '' || rawValue === null) return;
+
+    let dateStr = '';
+
+    if (rawDate instanceof Date) {
+      dateStr = Utilities.formatDate(
+        rawDate,
+        Session.getScriptTimeZone() || 'Europe/Amsterdam',
+        'dd-MM-yyyy'
+      );
+    } else {
+      dateStr = String(rawDate);
+    }
+
+    const value = Number(String(rawValue).replace(',', '.')) || 0;
+
+    history.push({
+      date: dateStr,
+      value: Math.round(value * 100) / 100
+    });
+  });
+
+  if (!history.length) {
+    return { ok: true, currentValue: 0, history: [] };
+  }
+
+  // Live voorraadwaarde uit Dashboard!B6
+  const liveCellValue = sh.getRange('B6').getValue();
+  const liveValue =
+    Number(String(liveCellValue).replace(',', '.')) || 0;
+
+
+  return {
+    ok: true,
+    currentValue: Math.round(liveValue * 100) / 100,
+    history
+  };
+}
+
+function debugVoorraadWaardeAnalytics() {
+  const res = apiGetVoorraadWaardeAnalytics();
+  Logger.log(JSON.stringify(res, null, 2));
+}
 
 
