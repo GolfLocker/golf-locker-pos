@@ -616,4 +616,109 @@ function debugVoorraadWaardeAnalytics() {
   Logger.log(JSON.stringify(res, null, 2));
 }
 
+/**
+ * ==============================
+ * TOP 5 DUURSTE VOORRAADITEMS
+ * Op basis van verwachte verkoopprijs (kolom F)
+ * ==============================
+ */
+function apiGetTopVoorraadWaardeItems() {
+  const ss = SpreadsheetApp.getActive();
+
+  const TABS = [
+    'Clubs',
+    'Sets',
+    'Tassen',
+    "Trolley's",
+    'Overig'
+  ];
+
+  const items = [];
+
+  TABS.forEach(tabName => {
+    const sh = ss.getSheetByName(tabName);
+    if (!sh) return;
+
+    const lastRow = sh.getLastRow();
+    if (lastRow < 2) return;
+
+    // A = SKU, B = Omschrijving, F = Verwachte verkoopprijs
+    const data = sh.getRange(2, 1, lastRow - 1, 6).getValues();
+
+    data.forEach(r => {
+      const sku = String(r[0] || '').trim();
+      const desc = String(r[1] || '').trim();
+      const value = Number(r[5]) || 0;
+
+      if (!sku || value <= 0) return;
+
+      items.push({
+        sku,
+        description: desc,
+        value
+      });
+    });
+  });
+
+  // Sorteer op waarde (hoog → laag)
+  items.sort((a, b) => b.value - a.value);
+
+  return {
+    ok: true,
+    items: items.slice(0, 5)
+  };
+}
+
+/**
+ * ==============================
+ * AANTAL ARTIKELEN PER VOORRAAD TAB
+ * ==============================
+ */
+function apiGetVoorraadAantallenPerTab() {
+  const ss = SpreadsheetApp.getActive();
+
+  const TABS = [
+    'Clubs',
+    'Sets',
+    'Tassen',
+    "Trolley's",
+    'Overig'
+  ];
+
+  const items = [];
+
+  TABS.forEach(tabName => {
+    const sh = ss.getSheetByName(tabName);
+    let count = 0;
+
+    if (sh) {
+      const lastRow = sh.getLastRow();
+      if (lastRow >= 2) {
+        const data = sh
+          .getRange(2, 1, lastRow - 1, 7)
+          .getValues();
+
+        data.forEach(row => {
+          const sku = row[0];   // kolom A
+          const sold = row[6];  // kolom G
+
+          if (!sku) return;
+          if (sold === '' || sold === null) {
+            count++;
+          }
+        });
+      }
+    }
+
+    items.push({
+      key: tabName,
+      count
+    });
+  });
+
+  return {
+    ok: true,
+    items
+  };
+}
 

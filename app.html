@@ -86,6 +86,16 @@
       background:#fff;
       color:var(--text);
     }
+    .pillInvent{
+      flex:1;
+      width:stretch;
+      font-size:18px;
+      padding:10px 14px;
+      border-radius:8px;
+      border:1px solid var(--border);
+      background:#fff;
+      color:var(--text);
+    }
     .pill::placeholder{color:var(--muted)}
     .btn-scan{background:var(--accent);border-color:var(--accent);color:#fff}
     .btn-cam{background:#e5e7eb;color:var(--text)}
@@ -1058,8 +1068,8 @@
               <span>📦 Verkoop</span><span>▾</span>
             </div>
             <div class="submenu">
-              <div data-view="retour">Retour</div>
               <div data-view="bonnen">Bonnen</div>
+              <div data-view="retour">Retour</div>
               <div data-view="huren">Huren</div>
               <div data-view="cadeaubonnen">Cadeaubonnen</div>
               <div data-view="kortingen">Kortingen</div>
@@ -1072,6 +1082,7 @@
             </div>
             <div class="submenu">
               <div data-view="voorraad-zoeken">Zoeken</div>
+              <div data-view="voorraad-overzicht">Voorraad</div>
               <div data-view="voorraad-inschrijven">Inschrijven</div>
               <div data-view="telling">Telling</div>
             </div>
@@ -1124,7 +1135,7 @@
         </nav>
       </aside>
 
-      <!-- CONTENT PLACEHOLDER -->
+      <!-- Inhoud -->
       <main class="content">
 
         <!-- KASSA (nieuw container, oude content volgt) -->
@@ -1374,9 +1385,13 @@
 
         <!---/////////////Voorraad//////////////// --->
 
+        <section id="view-voorraad-overzicht" class="view">
+          <h1>Voorraad overzicht volgt</h1>
+        </section>
+
         <section id="view-voorraad-inschrijven" class="view">
           <div class="wrap">
-            <h2 style="margin:0 0 12px 0;">Voorraad</h2>
+            <h2 style="margin:0 0 12px 0;">Voorraad inschrijven</h2>
             <div class="panel">
               <div id="voorraad-sub-inschrijven">
                 <div class="grid" style="gap:10px;">
@@ -1387,7 +1402,7 @@
 
                   <div>
                     <label>Omschrijving *</label>
-                    <input id="vDesc" class="pill" type="text" placeholder="Bijv. Titleist driver..." />
+                    <input id="vDesc" class="pillInvent" type="text" placeholder="Bijv. Titleist driver..." />
                   </div>
 
                   <div style="display:flex; gap:10px;">
@@ -1727,35 +1742,94 @@
         </section>
 
         <section id="view-analytics-voorraad" class="view">
-
+          
           <h2>Voorraadwaarde</h2>
-
           <!-- KPI cards -->
           <div class="sessie-grid">
 
-            <!-- Live voorraadwaarde -->
-            <div class="sessie-card col-4">
-              <h4>Huidige voorraadwaarde</h4>
-              <div id="voorraad-live-waarde" class="total-big">
-              <div class="skeleton skel-kpi"></div>
+            <!-- LINKER KOLOM -->
+            <div class="col-4">
+
+              <!-- KPI: huidige voorraadwaarde -->
+              <div class="sessie-card" style="margin-bottom:16px">
+                <h4 style="margin:0 0 8px 0;">Huidige voorraadwaarde</h4>
+
+                <div style="min-height:40px;">
+                  <div id="voorraad-live-skeleton" class="skeleton skel-big"></div>
+                  <div
+                    id="voorraad-live-waarde"
+                    class="total-big"
+                    style="display:none; white-space:nowrap;"
+                  >
+                    —
+                  </div>
+                </div>
               </div>
+
+              <!-- TOP 5 DUURSTE ARTIKELEN -->
+              <div class="sessie-card">
+
+                <h4 style="margin-bottom:12px;">Top 5 duurste artikelen</h4>
+
+                <!-- skeleton -->
+                <div id="top-voorraad-skeleton">
+                  <div class="skeleton" style="height:18px;margin-bottom:8px"></div>
+                  <div class="skeleton" style="height:18px;margin-bottom:8px"></div>
+                  <div class="skeleton" style="height:18px;margin-bottom:8px"></div>
+                  <div class="skeleton" style="height:18px;margin-bottom:8px"></div>
+                  <div class="skeleton" style="height:18px"></div>
+                </div>
+
+                <!-- lijst -->
+                <div id="top-voorraad-list" style="display:none"></div>
+
+              </div>
+
+            </div>
+
+            <!-- RECHTER KOLOM -->
+            <div class="sessie-card col-8">
+
+              <h4>Voorraadwaarde per maand</h4>
+
+              <div id="voorraad-chart-skeleton" class="skeleton skel-chart"></div>
+
+              <div
+                id="voorraad-chart-wrap"
+                style="position:relative;height:300px;display:none"
+              >
+                <canvas id="voorraadwaarde-chart"></canvas>
+              </div>
+
+            </div>
+
+            <!-- AANTAL ARTIKELEN PER CATEGORIE -->
+            <div class="sessie-card" style="margin-top:16px">
+
+              <h4 style="margin-bottom:12px;">Aantal artikelen per categorie</h4>
+
+              <!-- skeleton -->
+              <div id="voorraad-aantal-skeleton">
+                <div class="skeleton" style="height:18px;margin-bottom:8px"></div>
+                <div class="skeleton" style="height:18px;margin-bottom:8px"></div>
+              </div>
+
+              <!-- tabel -->
+              <div
+                id="voorraad-aantal-table"
+                style="display:none"
+              ></div>
+
             </div>
 
           </div>
 
-          <!-- Chart card -->
-          <div class="sessie-card col-4" style="margin-top:16px">
-             <h4>Voorraadwaarde per maand</h4>
-            <div style="position:relative;height:300px">
-              <canvas id="voorraadwaarde-chart"></canvas>
-            </div>
-          </div>
 
         </section>
 
 
         <section id="view-analytics-website" class="view">
-
+          <h2>Website analystics</h2>
         </section>
 
         <section id="view-instellingen" class="view">
@@ -3913,7 +3987,16 @@
     if (!elLive) return;
 
     // reset
-    elLive.textContent = '—';
+    const skelLive = document.getElementById('voorraad-live-skeleton');
+    const skelChart = document.getElementById('voorraad-chart-skeleton');
+    const chartWrap = document.getElementById('voorraad-chart-wrap');
+
+    // reset UI
+    if (skelLive) skelLive.style.display = 'block';
+    if (skelChart) skelChart.style.display = 'block';
+    if (elLive) elLive.style.display = 'none';
+    if (chartWrap) chartWrap.style.display = 'none';
+
 
     google.script.run
       .withSuccessHandler(res => {
@@ -3921,6 +4004,12 @@
           elLive.textContent = '—';
           return;
         }
+        // skeletons uit, content aan
+        if (skelLive) skelLive.style.display = 'none';
+        if (skelChart) skelChart.style.display = 'none';
+        if (elLive) elLive.style.display = 'block';
+        if (chartWrap) chartWrap.style.display = 'block';
+
 
         // 🔥 ALLEEN live waarde uit backend (Dashboard!B6)
         const liveValue = Number(res.currentValue) || 0;
@@ -4006,9 +4095,117 @@
     });
   }
 
+  function loadTopVoorraadItems() {
+    const skel = document.getElementById('top-voorraad-skeleton');
+    const list = document.getElementById('top-voorraad-list');
 
+    if (!skel || !list) return;
 
+    // reset
+    skel.style.display = 'block';
+    list.style.display = 'none';
+    list.innerHTML = '';
 
+    google.script.run
+      .withSuccessHandler(res => {
+        if (!res || res.ok !== true || !Array.isArray(res.items)) {
+          return;
+        }
+
+        res.items.forEach(item => {
+          const row = document.createElement('div');
+          row.style.display = 'flex';
+          row.style.justifyContent = 'space-between';
+          row.style.alignItems = 'flex-start';
+          row.style.marginBottom = '10px';
+
+          row.innerHTML = `
+            <div>
+              <div style="font-weight:500">${item.description}</div>
+              <div style="font-size:11px;color:#6b7280">${item.sku}</div>
+            </div>
+            <div style="font-weight:600;white-space:nowrap">
+              € ${Number(item.value).toLocaleString('nl-NL')}
+            </div>
+          `;
+
+          list.appendChild(row);
+        });
+
+        skel.style.display = 'none';
+        list.style.display = 'block';
+      })
+      .apiGetTopVoorraadWaardeItems();
+  }
+
+  function loadVoorraadAantallen() {
+    const skel = document.getElementById('voorraad-aantal-skeleton');
+    const table = document.getElementById('voorraad-aantal-table');
+
+    if (!skel || !table) return;
+
+    skel.style.display = 'block';
+    table.style.display = 'none';
+    table.innerHTML = '';
+
+    google.script.run
+      .withSuccessHandler(res => {
+        if (!res || res.ok !== true || !res.items) return;
+
+        const items = Array.isArray(res.items) ? res.items : [];
+        let total = 0;
+
+        const grid = document.createElement('div');
+        grid.style.display = 'grid';
+        grid.style.gridTemplateColumns = 'repeat(5, 1fr)';
+        grid.style.gap = '12px';
+        grid.style.marginBottom = '16px';
+
+        items.forEach(item => {
+          const key = item.key;
+          const value = Number(item.count) || 0;
+          total += value;
+
+          const box = document.createElement('div');
+          box.style.border = '1px solid #e5e7eb';
+          box.style.borderRadius = '8px';
+          box.style.padding = '8px 6px';
+          box.style.textAlign = 'center';
+          box.style.background = '#fafafa';
+          box.style.minHeight = '70px';
+
+          box.innerHTML = `
+            <div style="font-size:11px;color:#6b7280;text-transform:uppercase;margin-bottom:4px">
+              ${key}
+            </div>
+            <div style="font-size:20px;font-weight:600;color:#297900">
+              ${value}
+            </div>
+          `;
+
+          grid.appendChild(box);
+        });
+
+        const totalRow = document.createElement('div');
+        totalRow.style.borderTop = '1px solid #e5e7eb';
+        totalRow.style.paddingTop = '10px';
+        totalRow.style.display = 'flex';
+        totalRow.style.justifyContent = 'space-between';
+        totalRow.style.fontSize = '14px';
+
+        totalRow.innerHTML = `
+          <div style="color:#6b7280">Totaal artikelen</div>
+          <div style="font-weight:600">${total}</div>
+        `;
+
+        table.appendChild(grid);
+        table.appendChild(totalRow);
+
+        skel.style.display = 'none';
+        table.style.display = 'block';
+      })
+      .apiGetVoorraadAantallenPerTab();
+  }
 
 
     scan.addEventListener('keydown', e=>{
@@ -5743,6 +5940,8 @@
         if (viewName === 'analytics-voorraad') {
           loadAnalyticsVoorraad();
           renderVoorraadWaardeChart();
+          loadTopVoorraadItems();
+          loadVoorraadAantallen();
         }
 
 
