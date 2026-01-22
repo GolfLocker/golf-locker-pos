@@ -33,6 +33,7 @@ const BRAND = {
   kvk:        '80742300',
   extra:      'Btw inbegrepen',
   logoUrl:    'https://shop.golf-locker.nl/wp-content/uploads/2024/04/Golf-Locker-Logo-1-scaled.png',
+  logoBonUrl:    'https://shop.golf-locker.nl/wp-content/uploads/2026/01/Bon-logo.png',
   webshopUrl: 'https://shop.golf-locker.nl'
 };
 
@@ -60,8 +61,25 @@ function _build80mmTicketHtml_(opts) {
     subtotal = 0,
     discount = 0,
     dateString,
-    items
+    items,
+    giftcards = []
   } = opts;
+
+  const lines = Array.isArray(items) ? items : [];
+
+  // === INRUIL LOGICA (ALLEEN VOOR BON) ===
+  const hasInruil = lines.some(l => l.sku === 'INRUIL');
+
+  // Subtotaal = alleen verkoopregels
+  const calcSubtotal = lines
+    .filter(l => l.sku !== 'INRUIL')
+    .reduce((s, l) => s + (Number(l.price) || 0) * (Number(l.qty) || 1), 0);
+
+  // Inruil = negatieve verrekening
+  const inruil = lines
+    .filter(l => l.sku === 'INRUIL')
+    .reduce((s, l) => s + (Number(l.price) || 0) * (Number(l.qty) || 1), 0);
+
 
 
   const enc = encodeURIComponent;
@@ -71,7 +89,7 @@ function _build80mmTicketHtml_(opts) {
   );
 
   const qrUrl = `https://quickchart.io/qr?text=${enc(BRAND.webshopUrl || '')}&size=180&margin=1&format=png`;
-  const code128Url = `https://bwipjs-api.metafloor.com/?bcid=code128&text=${enc(receiptNo || '')}&scale=3&height=12&includetext&textxalign=center`;
+  const code128Url = `https://bwipjs-api.metafloor.com/?bcid=code128&text=${enc(receiptNo || '')}&scale=4&height=14&includetext&textsize=10&textxalign=center`;
 
   // let op: </script> escapen als <\/script> in template literal
   // let op: </script> escapen
@@ -101,10 +119,10 @@ function _build80mmTicketHtml_(opts) {
   <meta charset="utf-8">
   <title>Bon ${receiptNo || ''}</title>
   <style>
-    @page { size: 80mm auto; margin: 4mm 4mm; }
+    @page { size: 80mm auto; margin: 0mm 4mm; }
     * { box-sizing:border-box; }
     body {
-      font:11px/1.25 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+      font:13px/1.25 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
       color:#000;
       margin:0;
     }
@@ -113,18 +131,18 @@ function _build80mmTicketHtml_(opts) {
     .right { text-align:right; }
     .muted { color:#555; }
     .logo { display:block; width:54mm; margin:0 auto 8px; filter:grayscale(100%); }
-    h1 { font-size:14px; margin:0 0 6px; text-align:center; }
-    .small { font-size:10px; }
+    h1 { font-size:15px; margin:0 0 6px; text-align:center; }
+    .small { font-size:12px; }
     .mono { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
     .row { display:flex; justify-content:space-between; }
     hr { border:0; border-top:1px dashed #000; margin:6px 0; }
     table { width:100%; border-collapse:collapse; }
     th,td { padding:2px 0; vertical-align:top; }
     th { text-align:left; font-weight:700; }
-    .sku   { width:15mm; font-size:9px; }
+    .sku   { width:15mm; font-size:13px; }
     .desc  { width:40mm; padding-right:1,5mm; }
     .price { width:18mm; text-align:right; }
-    .total { font-size:13px; font-weight:700; }
+    .total { font-size:15px; font-weight:700; }
     .qr { width:36mm; margin:6px auto 0; }
     .barcode { width:60mm; margin:6px auto 0; display:block; }
     @media print { .noprint { display:none!important; } }
@@ -132,9 +150,9 @@ function _build80mmTicketHtml_(opts) {
 </head>
 <body>
   <div class="ticket">
-    ${BRAND.logoUrl ? `<img class="logo" src="${BRAND.logoUrl}" alt="logo">` : ''}
+    ${BRAND.logoBonUrl ? `<img class="logo" src="${BRAND.logoBonUrl}" alt="logo">` : ''}
     <h1>${BRAND.name || ''}</h1>
-    <div class="center small muted">${BRAND.line1 || ''} • ${BRAND.line2 || ''}</div>
+    <div class="center small muted">${BRAND.line1 || ''}, ${BRAND.line2 || ''}</div>
     <div class="center small muted">${BRAND.phone || ''} • ${BRAND.email || ''}</div>
     <div class="center small muted">BTW: ${BRAND.vat || '-'} • KvK: ${BRAND.kvk || '-'}</div>
 
@@ -161,7 +179,14 @@ function _build80mmTicketHtml_(opts) {
 
     <hr>
     <table>
-      ${discount > 0 ? `
+      ${hasInruil ? `
+        <tr>
+          <td class="right" colspan="5">Subtotaal: ${fmt(calcSubtotal)}</td>
+        </tr>
+        <tr>
+          <td class="right" colspan="5"><b>Inruil: ${fmt(inruil)}</b></td>
+        </tr>
+      ` : discount > 0 ? `
         <tr>
           <td class="right" colspan="5">Subtotaal: ${fmt(subtotal)}</td>
         </tr>
@@ -172,11 +197,40 @@ function _build80mmTicketHtml_(opts) {
       <tr>
         <td class="right total" colspan="5">Totaal: ${fmt(total)}</td>
       </tr>
+
+      ${giftcards.length ? `
+      <hr>
+      <div class="center">
+        <div class="mono" style="font-size:12px; font-weight:700;">
+          Cadeaubon code${giftcards.length > 1 ? 's' : ''}
+        </div>
+      </div>
+
+      <table style="margin-top:4px">
+        ${giftcards.map(gc => `
+          <tr>
+            <td class="mono" style="font-size:13px; font-weight:700;">
+              ${gc.code}
+            </td>
+            <td class="right mono">
+              ${fmt(gc.amount)}
+            </td>
+          </tr>
+        `).join('')}
+      </table>
+
+      <div class="small muted center" style="margin-top:4px">
+        Bewaar deze code goed.<br>
+        Te gebruiken in de winkel en online.
+      </div>
+    ` : ''}
+
     </table>
 
     ${BRAND.extra ? `<div class="right small muted" style="margin-top:3px">${BRAND.extra}</div>` : ''}
 
     <div class="center">
+      <div class="center small muted" style="margin-top:20px">Bezoek onze website!</div>
       <img class="qr" src="${qrUrl}" alt="qr">
     </div>
     <div class="center small muted" style="margin-top:4px">
@@ -1016,6 +1070,9 @@ function apiBookAndReceipt(payMethod, customerEmail) {
     const ss   = SpreadsheetApp.getActive();
     const cart = getCart();
     if (!cart.length) throw new Error('Mandje is leeg');
+    // 🔒 SNAPSHOT cart voor side-effects (giftcards e.d.)
+    const cartSnapshot = JSON.parse(JSON.stringify(cart));
+
 
     const now   = new Date();
     const tz    = Session.getScriptTimeZone() || 'Europe/Amsterdam';
@@ -1027,6 +1084,7 @@ function apiBookAndReceipt(payMethod, customerEmail) {
     // groepeer per sheet
     const bySheet = {};
     cart.forEach(it => {
+      if (it.sku === 'INRUIL') return;
       if (!bySheet[it.sheetName]) bySheet[it.sheetName] = [];
       bySheet[it.sheetName].push(it);
     });
@@ -1057,7 +1115,6 @@ function apiBookAndReceipt(payMethod, customerEmail) {
             row: freeRows[i],
             price: it.price
           });
-          total += Number(it.price) || 0;
         }
       });
 
@@ -1069,6 +1126,11 @@ function apiBookAndReceipt(payMethod, customerEmail) {
         sh.getRange(u.row, COL.expMargin).setValue(0);
       });
     });
+
+    // 🔢 Totaal = som van alle regels (incl. INRUIL)
+    total = cart.reduce((s, it) => {
+      return s + (Number(it.price) || 0) * (Number(it.qty) || 1);
+    }, 0);
 
     // URL voor live 80mm-ticket (?file=ticket&no=...)
     const baseUrl   = ScriptApp.getService().getUrl();
@@ -1151,9 +1213,6 @@ function apiBookAndReceipt(payMethod, customerEmail) {
       })
       .filter(Boolean);
 
-    // Cart & index reset
-    clearCart();
-    invalidateSkuIndex_();
 
     const props = PropertiesService.getDocumentProperties();
     props.setProperty(
@@ -1164,7 +1223,9 @@ function apiBookAndReceipt(payMethod, customerEmail) {
 
     // Bouw itemsSold in hetzelfde formaat als apiBookWithDiscountNet
     // 🔥 Kanaal opnieuw ophalen uit voorraad-sheet (enige betrouwbare bron)
-    const itemsSold = cart.map(it => {
+    const itemsSold = cart
+      .filter(it => it.sku !== 'INRUIL')
+      .map(it => {
       let channel = '';
 
       try {
@@ -1188,16 +1249,34 @@ function apiBookAndReceipt(payMethod, customerEmail) {
     });
 
     // 🔥 GIFT CARD ISSUE (alleen bij verkoop)
+    // 🎁 DIRECT giftcards uitgeven (synchroon, winkel-flow)
+    let issuedGiftcards = [];
     try {
-      giftcardIssueForBookedSale_({
-        receiptNo: receiptNo,
-        when: new Date(),
-        items: itemsSold
-      });
+      const itemsSoldForGiftcard = cartSnapshot
+        .filter(it => it.sku && String(it.sku).toUpperCase().startsWith('GIFTCARD'))
+        .map(it => ({
+          sku: String(it.sku).trim(),
+          desc: it.desc || '',
+          price: Number(it.price) || 0,
+          qty: Number(it.qty) || 1
+        }));
+
+      if (itemsSoldForGiftcard.length) {
+        issuedGiftcards = giftcardIssueForBookedSale_({
+          receiptNo: receiptNo,
+          when: new Date(),
+          items: itemsSoldForGiftcard
+        });
+      }
     } catch (e) {
-      // bewust niet crashen, maar wel loggen
-      Logger.log('Giftcard issue failed: ' + e.message);
+      // 🔴 hier WEL hard falen → winkel mag geen giftcard verkopen zonder code
+      throw new Error('Giftcard aanmaken mislukt: ' + e.message);
     }
+
+
+        // Cart & index reset
+    clearCart();
+    invalidateSkuIndex_();
 
     const itemsText = buildItemsText_(itemsSold);
 
@@ -1211,7 +1290,7 @@ function apiBookAndReceipt(payMethod, customerEmail) {
 
 
     // front-end gebruikt ticketUrl voor directe (live) 80mm-print
-    return { total, receiptNo, ticketUrl, itemsSold, troephoekMissingBuy };
+    return { total, receiptNo, ticketUrl, itemsSold, troephoekMissingBuy, giftcards: issuedGiftcards || [] };
 
   } finally {
     try { lock.releaseLock(); } catch (e) {}
@@ -1477,6 +1556,29 @@ function processPostProcessQueue() {
       const lineVals = linesSheet.getRange(2, 1, linesSheet.getLastRow() - 1, 7).getValues();
       const myLines = lineVals.filter(r => String(r[0]) === String(receiptNo));
       if (!myLines.length) return;
+
+      // 🎁 Giftcards uitgeven (post-process)
+      try {
+        const linesSh = ss.getSheetByName(LOG.lineSheet);
+        const rows = linesSh.getDataRange().getValues().slice(1);
+
+        const itemsSold = rows
+          .filter(r => r[0] === receiptNo)
+          .map(r => ({
+            sku: r[1],
+            desc: r[2],
+            price: Number(r[3]) || 0,
+            qty: Number(r[4]) || 1
+          }));
+
+        giftcardIssueForBookedSale_({
+          receiptNo,
+          when: new Date(),
+          items: itemsSold
+        });
+      } catch (e) {
+        Logger.log('Post-process giftcard failed: ' + e.message);
+      }
 
       const rows = myLines.map(r => {
         const price = Number(r[3] || 0);

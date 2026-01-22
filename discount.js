@@ -294,6 +294,10 @@ function apiBookWithDiscountNet(payMethod, customerEmail) {
       throw new Error('Mandje is leeg');
     }
 
+    // 🔐 Zorg dat itemsSold altijd bestaat
+    let itemsSold = [];
+
+
     // 1) Bepaal kortingbedrag via jouw bestaande totals-functie
     const totals = apiGetCartTotalsWithDiscount();
     // 🔥 Laatste waarheid: als er GEEN actieve discount meer is → forceer 0
@@ -330,6 +334,15 @@ function apiBookWithDiscountNet(payMethod, customerEmail) {
       }
     });
 
+    itemsSold = itemsNet
+      .filter(it => it.sku !== 'INRUIL')
+      .map(it => ({
+      sku: String(it.sku || ''),
+      desc: String(it.desc || ''),
+      price: Number(it.price) || 0,
+      qty: Number(it.qty) || 1,
+      channel: String(it.channel || '')
+    }));
 
     const now   = new Date();
     const email = (customerEmail || '').trim();
@@ -340,6 +353,7 @@ function apiBookWithDiscountNet(payMethod, customerEmail) {
     // groepeer per sheet
     const bySheet = {};
     itemsNet.forEach(it => {
+      if (!it.sheetName) return; // veiligheid
       if (!bySheet[it.sheetName]) bySheet[it.sheetName] = [];
       bySheet[it.sheetName].push(it);
     });
@@ -595,6 +609,10 @@ function apiBookWithDiscountNet(payMethod, customerEmail) {
         channel: String(it.channel || '')
       }))
     };
+
+    // 🔁 itemsSold = NETTO verkochte artikelen (excl. INRUIL)
+
+
 
 
   } finally {

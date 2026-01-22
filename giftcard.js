@@ -230,6 +230,7 @@ function _generateUniqueGiftcardCode_(existingSet) {
  * @param {Array}  opts.items  (itemsNet uit apiBookWithDiscountNet)
  */
 function giftcardIssueForBookedSale_(opts) {
+
   const receiptNo = String(opts?.receiptNo || '').trim();
   const when = opts?.when || new Date();
   const items = Array.isArray(opts?.items) ? opts.items : [];
@@ -278,7 +279,7 @@ function giftcardIssueForBookedSale_(opts) {
       existing.add(code);
 
       // defaults
-      const row = [];
+      const row = new Array(sh.getLastColumn()).fill('');
       row[cols.code - 1]        = code;
       row[cols.type - 1]        = GIFTCARD_CFG.typeValue;
       row[cols.waarde - 1]      = '';        // niet gebruikt bij giftcard
@@ -297,6 +298,7 @@ function giftcardIssueForBookedSale_(opts) {
       out.push({ code, amount: unit });
     }
   });
+  Logger.log('[GIFTCARD] rowsToAppend: ' + rowsToAppend.length);
 
   // 5) Append
   sh.getRange(sh.getLastRow() + 1, 1, rowsToAppend.length, sh.getLastColumn()).setValues(rowsToAppend);
@@ -338,4 +340,304 @@ function apiGiftcardGetLastCreated() {
 function apiDebugGetActiveGiftcard() {
   return _getActiveGiftcard_();
 }
+
+/**
+ * DEBUG — handmatig testen of giftcards kunnen worden aangemaakt
+ * Draai deze functie 1x vanuit Apps Script editor (▶️)
+ */
+function DEBUG_issueGiftcardDirect() {
+  const receiptNo = 'DEBUG-' + Utilities.formatDate(
+    new Date(),
+    Session.getScriptTimeZone(),
+    'yyyyMMdd-HHmmss'
+  );
+
+  const items = [
+    {
+      sku: 'GIFTCARD',
+      desc: 'Debug giftcard',
+      price: 25,
+      qty: 1
+    }
+  ];
+
+  const result = giftcardIssueForBookedSale_({
+    receiptNo: receiptNo,
+    when: new Date(),
+    items: items
+  });
+
+  SpreadsheetApp.getActive().toast(
+    'DEBUG giftcard aangemaakt: ' + JSON.stringify(result),
+    'GIFTCARD DEBUG',
+    8
+  );
+
+  return result;
+}
+
+function apiGetCadeaubonnen() {
+  try {
+    const ss = SpreadsheetApp.getActive();
+    const sh = ss.getSheetByName('Codes');
+    if (!sh) {
+      Logger.log('❌ Codes sheet NOT found');
+      return [];
+    }
+
+    const data = sh.getDataRange().getValues();
+    Logger.log('📦 Total rows incl header: ' + data.length);
+
+    if (data.length < 2) {
+      Logger.log('⚠️ No data rows');
+      return [];
+    }
+
+    const header = data[0].map(h => String(h || '').trim().toLowerCase());
+    Logger.log('🧾 Headers: ' + JSON.stringify(header));
+
+    const idx = name => header.indexOf(name);
+
+    const iCode      = idx('code');
+    const iType      = idx('type');
+    const iSaldo     = idx('saldo');
+    const iActief    = idx('actief');
+    const iGebruikt  = idx('gebruikt');
+    const iCreatedAt = idx('created_at');
+    const iLaatste   = idx('laatste_transactie');
+
+    Logger.log('📍 Indexes: ' + JSON.stringify({
+      code: iCode,
+      type: iType,
+      saldo: iSaldo,
+      actief: iActief,
+      gebruikt: iGebruikt,
+      created_at: iCreatedAt,
+      laatste_transactie: iLaatste
+    }));
+
+    // 🔒 GAS-safe normalizer
+    const safeString = v => {
+      if (v === null || v === undefined) return '';
+      if (v instanceof Date) return v.toISOString();
+      return String(v);
+    };
+
+    const result = [];
+
+    data.slice(1).forEach((r, i) => {
+      Logger.log(`➡️ ROW ${i + 2}: ` + JSON.stringify(r));
+
+      const type        = String(r[iType] || '').trim().toUpperCase();
+      const saldo       = Number(r[iSaldo]) || 0;
+      const actiefVal   = r[iActief];
+      const gebruiktVal = r[iGebruikt];
+      const createdAt   = r[iCreatedAt];
+      const laatste     = r[iLaatste];
+
+      Logger.log(
+        `   type=${type}, saldo=${saldo}, actief=${actiefVal}, gebruikt=${gebruiktVal}`
+      );
+
+      let ok = true;
+
+      if (type !== 'GIFTCARD') ok = false;
+      if (saldo <= 0) ok = false;
+      if (actiefVal === false) ok = false;
+
+      Logger.log(`   👉 INCLUDED = ${ok}`);
+
+      if (ok) {
+        result.push({
+          code: safeString(r[iCode]),
+          saldo: saldo,                 // number is ok
+          actief: actiefVal === true,   // boolean is ok
+          gebruikt: safeString(gebruiktVal),
+          created_at: safeString(createdAt),
+          laatste_transactie: safeString(laatste)
+        });
+      }
+    });
+
+    Logger.log('✅ RESULT COUNT: ' + result.length);
+    Logger.log('✅ RESULT: ' + JSON.stringify(result));
+
+    return result;
+
+  } catch (e) {
+    Logger.log('🔥 FATAL ERROR apiGetCadeaubonnen: ' + e.stack);
+    return [];
+  }
+}
+
+
+function apiPrintCadeaubon(code) {
+  const ss = SpreadsheetApp.getActive();
+  const sh = ss.getSheetByName('Codes');
+  const data = sh.getDataRange().getValues();
+
+  const header = data[0].map(h => String(h).toLowerCase());
+  const idx = {
+    code: header.indexOf('code'),
+    saldo: header.indexOf('saldo')
+  };
+
+  const row = data.slice(1).find(r => r[idx.code] === code);
+  if (!row) throw new Error('Cadeaubon niet gevonden');
+
+  return buildCadeaubon80mmHtml_(code, Number(row[idx.saldo]) || 0);
+}
+
+function buildCadeaubon80mmHtml_(code, saldo) {
+  const enc = encodeURIComponent;
+
+  const barcodeUrl =
+    `https://bwipjs-api.metafloor.com/?bcid=code128&text=${enc(code)}&scale=4&height=18&includetext=false`;
+
+  const logoUrl =
+    'https://shop.golf-locker.nl/wp-content/uploads/2026/01/Bon-logo.png';
+
+  return `
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+
+<style>
+@page {
+  size: 80mm auto;
+  margin: 0;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  width: 80mm;
+  height: 200mm;
+  overflow: hidden;
+  font-family: Arial, sans-serif;
+}
+
+/* Center helper */
+.page {
+  position: relative;
+  width: 80mm;
+  height: 200mm;
+}
+
+/* De ECHTE kaart (liggend) */
+.card {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 160mm;     /* liggend formaat */
+  height: 80mm;
+  transform: translate(-50%, -50%) rotate(-90deg);
+  transform-origin: center;
+
+  box-sizing: border-box;
+  border: 2px solid #000;
+  padding: 10mm;
+
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Linker kolom */
+.left {
+  width: 45%;
+  text-align: center;
+}
+
+.logo { 
+  width: 54mm;
+  margin-bottom: 6mm;
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 4mm;
+}
+
+.subtitle {
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+/* Rechter kolom */
+.right {
+  width: 50%;
+  text-align: center;
+}
+
+.barcode img {
+  width: 100%;
+  max-width: 70mm;
+}
+
+.code {
+  font-family: monospace;
+  font-size: 14px;
+  margin-top: 3mm;
+}
+
+.value {
+  font-size: 28px;
+  font-weight: 700;
+  margin-top: 6mm;
+}
+</style>
+</head>
+
+<body onload="window.print()">
+
+  <div class="page">
+    <div class="card">
+
+      <div class="left">
+        <img class="logo" src="${logoUrl}" alt="Golf Locker">
+        <div class="title">Cadeaubon</div>
+        <div class="subtitle">
+          Te besteden in de winkel<br>
+          en online bij Golf Locker
+        </div>
+      </div>
+
+      <div class="right">
+        <div class="barcode">
+          <img src="${barcodeUrl}">
+        </div>
+        <div class="code">${code}</div>
+        <div class="value">€ ${saldo.toFixed(2)}</div>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>`;
+}
+
+
+function DEBUG_dumpCodesSample() {
+  const ss = SpreadsheetApp.getActive();
+  const sh = ss.getSheetByName('Codes');
+  if (!sh) throw new Error('Codes sheet niet gevonden');
+
+  const data = sh.getDataRange().getValues();
+  const header = data[0];
+
+  Logger.log('HEADERS: ' + JSON.stringify(header));
+
+  // Toon de eerste 5 datarijen exact zoals GAS ze ziet
+  for (let i = 1; i <= Math.min(10, data.length - 1); i++) {
+    Logger.log(`ROW ${i}: ` + JSON.stringify(data[i]));
+  }
+
+  return 'Check Executions logs';
+}
+
 

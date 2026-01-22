@@ -231,6 +231,15 @@
       .cta .btn-primary { width:100%; font-size:20px; padding:16px; border-radius:12px; }
       .muted { text-align:center; font-size:12px; }
       #cameraWrap video { width:100%; max-height:40vh; border-radius:10px; }
+
+      /* Aantal in kassa: read-only */
+      #cartTbl .qty-input {
+        background: #f3f4f6;
+        color: #6b7280;
+        border-color: #e5e7eb;
+        cursor: not-allowed;
+      }
+
     }
 
     /* Tabs */
@@ -1045,7 +1054,49 @@
     display: none;
   }
 
+  /*INFO*/
+  .info-shafts-container {
+    display: flex;
+    gap: 16px;
+  }
 
+  .info-shafts-list {
+    width: 35%;
+    min-width: 260px;
+  }
+
+  .info-shafts-detail {
+    flex: 1;
+    border-left: 1px solid #ddd;
+    padding-left: 16px;
+  }
+
+  .shaft-row {
+    padding: 8px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+  }
+
+  .shaft-row:hover {
+    background: #f5f5f5;
+  }
+
+  .muted {
+    color: #888;
+    font-size: 0.9em;
+  }
+
+  .shaft-variants {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .shaft-variants th,
+  .shaft-variants td {
+    border-bottom: 1px solid #ddd;
+    padding: 6px;
+    text-align: left;
+  }
 
 </style>
 </head>
@@ -1099,13 +1150,15 @@
                   <span>Golfclubs</span><span>▾</span>
                 </div>
                 <div class="submenu">
-                  <div data-view="info-lofts">Lofts</div>
-                  <div data-view="info-lengtes">Lengtes</div>
                   <div data-view="info-shafts">Shafts</div>
+                  <div data-view="info-lengtes">Lengtes</div>
+                  <div data-view="info-lofts">Lofts</div>
                 </div>
               </div>
 
               <div data-view="inkoop-partners">Inkoop partners</div>
+              <div data-view="prijzen">Prijzen</div>
+              <div data-view="linkjes">Linkjes</div>
             </div>
           </div>
 
@@ -1164,7 +1217,7 @@
                 <tbody></tbody>
                 <tfoot>
                   <tr>
-                    <td colspan="4" class="right muted">Totaal (sub)</td>
+                    <td colspan="4" class="right muted">Totaal</td>
                     <td id="total" class="right">€ 0,00</td>
                     <td></td>
                   </tr>
@@ -1375,7 +1428,38 @@
         </section>
 
         <section id="view-cadeaubonnen" class="view">
-          <h1>Cadeaubonnen overzicht volgt</h1>
+          <div class="wrap">
+            <div class="panel">
+              <h3>Cadeaubonnen</h3>
+
+              <table id="cadeaubonnenTbl">
+                <thead>
+                  <tr>
+                    <th>Code</th>
+                    <th class="right">Saldo</th>
+                    <th>Laatst gebruikt</th>
+                    <th>Gebruikt</th>
+                    <th>Aangemaakt</th>
+                    <th></th>
+                  </tr>
+                </thead>
+
+                <!-- Skeleton rows -->
+                <tbody id="cadeaubonnenSkeletonBody" hidden>
+                  <tr>
+                    <td colspan="5">
+                      <div class="skeleton skeleton-row"></div>
+                      <div class="skeleton skeleton-row"></div>
+                      <div class="skeleton skeleton-row"></div>
+                    </td>
+                  </tr>
+                </tbody>
+
+                <!-- Data rows -->
+                <tbody id="cadeaubonnenBody"></tbody>
+              </table>
+            </div>
+          </div>
         </section>
 
         <section id="view-kortingen" class="view">
@@ -1542,6 +1626,7 @@
         </section>
 
         <section id="view-telling" class="view">
+          <h2>Voorraad telling</h2>
           <div class="wrap">
             <div id="voorraad-sub-tellen">
               <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
@@ -1595,20 +1680,49 @@
           </div>
         </section>
 
-        <section id="view-info-lofts" class="view">
-          <h1>Loft INfo Volgt</h1>
+        <section id="view-info-shafts" class="view">
+          <h1>Shaft Info</h1>
+
+          <div class="info-shafts-container">
+            <!-- LEFT: search + list -->
+            <div class="info-shafts-list">
+              <input
+                type="text"
+                id="shaftSearchInput"
+                placeholder="Zoek shaft (merk, model...)"
+                oninput="infoSearchShafts()"
+              />
+
+              <div id="shaftResults" class="shaft-results"></div>
+            </div>
+
+            <!-- RIGHT: detail -->
+            <div class="info-shafts-detail" id="shaftDetail">
+              <div class="muted">Selecteer een shaft om details te bekijken</div>
+            </div>
+          </div>
         </section>
 
         <section id="view-info-lengtes" class="view">
-           <h1>Lengte INfo Volgt</h1>
+           <h1>Lengte Info Volgt</h1>
         </section>
 
-        <section id="view-info-shafts" class="view">
-          <h1>Shaft INfo Volgt</h1>
+        <section id="view-info-lofts" class="view">
+          <h1>Loft Info Volgt</h1>
         </section>
+
 
         <section id="view-inkoop-partners" class="view">
           <h1>Inkoop partners Info Volgt</h1>
+        </section>
+
+        <section id="view-prijzen" class="view">
+          <h1>Verkochte artikelen tbv prijzen</h1>
+          <p>Hier komt een overzicht van al onze verkochte dingen ooit om te zoeken naar prijzen die mogooltjes bereid zijn te betalen #mentalreminder</p>
+        </section>
+
+        <section id="view-linkjes" class="view">
+          <h1>Handige linkjes</h1>
         </section>
 
         <!-- Sessie -->
@@ -2127,7 +2241,15 @@
             <input type="number" class="price-input" inputmode="decimal" value="${it.price||0}">
           </td>
           <td data-label="Aantal" class="center">
-            <input type="number" min="1" value="${it.qty||1}">
+            <input
+              type="number"
+              min="1"
+              value="${it.qty||1}"
+              class="qty-input"
+              readonly
+              tabindex="-1"
+            />
+
           </td>
           <td data-label="Subtotaal" class="right subtot">€ 0,00</td>
           <td><button class="btn btn-danger">✕</button></td>
@@ -2169,15 +2291,21 @@
 
         priceInput.addEventListener('blur', e=>{
           priceInput._editing = false;
-          const raw = e.target.value.replace(',', '.');
-          const n = Number(raw);
-          if (!isNaN(n)) {
-            e.target.value = n.toFixed(2).replace('.', ',');
+          let raw = e.target.value.replace(',', '.');
+          let n = Number(raw);
+          if (isNaN(n)) n = 0;
+
+          // INRUIL = altijd negatief
+          if (it.sku === 'INRUIL') {
+            n = -Math.abs(n);
           }
 
-          // force 1 laatste render
+          it.price = n;
+          e.target.value = n.toFixed(2).replace('.', ',');
+
           updateRow(it.sku);
         });
+
 
         qtyInput.addEventListener('input', debounce(e=>{
           const v = e.target.value;
@@ -2252,6 +2380,35 @@
     function addScan(){
       const sku = (scan.value || '').trim();
       if (!sku) return;
+
+      // === INRUIL special case ===
+      if (sku === 'INRUIL') {
+        // bestaat er al een inruilregel?
+        if (state.has('INRUIL')) {
+          // focus op prijsveld van bestaande regel
+          const tr = tb.querySelector('tr[data-sku="INRUIL"]');
+          if (tr) {
+            const priceInput = tr.querySelector('.price-input');
+            if (priceInput) priceInput.focus();
+          }
+          scan.value = '';
+          return;
+        }
+
+        // voeg nieuwe inruilregel toe
+        const line = {
+          sku: 'INRUIL',
+          desc: 'Inruil',
+          price: 0,
+          qty: 1
+        };
+
+        ensureRow(line);
+        updateTotalLocal();
+
+        scan.value = '';
+        return;
+      }
 
       google.script.run
         .withSuccessHandler(({line, total}) => {
@@ -2456,11 +2613,7 @@
         if (hasActiveDiscountOrGiftcard) {
           const cartArr = Array.from(state.values());
 
-          runner.apiBookWithDiscountNet({
-            payMethod: pay,
-            email: email,
-            cart: cartArr
-          });
+          runner.apiBookWithDiscountNet(pay, email);
 
         } else {
           runner.apiBookAndReceipt(pay, email);
@@ -4574,6 +4727,192 @@
       if (res) res.innerHTML = '';
     }
 
+    function loadCadeaubonnen() {
+      const body = document.getElementById('cadeaubonnenBody');
+      const skeleton = document.getElementById('cadeaubonnenSkeletonBody');
+
+      // 🔒 HARD GUARD
+      if (!body || !skeleton) {
+        console.warn('Cadeaubonnen view nog niet in DOM');
+        return;
+      }
+
+      // Helpers (veilig)
+      const pick = (obj, keys) => {
+        for (const k of keys) {
+          if (obj && obj[k] !== undefined && obj[k] !== null && obj[k] !== '') return obj[k];
+        }
+        return '';
+      };
+
+      const fmtDateSafe = (v) => {
+        if (!v) return '-';
+        const d = new Date(v);
+        if (isNaN(d.getTime())) return String(v); // fallback: toon raw
+        return d.toLocaleDateString('nl-NL');
+      };
+
+      const fmtMoney = (n) => {
+        const x = Number(n);
+        if (!isFinite(x)) return '0,00';
+        return x.toFixed(2).replace('.', ',');
+      };
+
+      body.innerHTML = '';
+      skeleton.hidden = false;
+
+      google.script.run
+        .withSuccessHandler(list => {
+          skeleton.hidden = true;
+          // 🔽 Sorteer: nieuwste eerst (created_at desc)
+          list.sort((a, b) => {
+            const da = new Date(a.created_at || a.createdAt || 0).getTime();
+            const db = new Date(b.created_at || b.createdAt || 0).getTime();
+            return db - da;
+          });
+
+
+          if (!list || !Array.isArray(list) || list.length === 0) {
+            body.innerHTML = `
+              <tr>
+                <td colspan="6" class="muted center">Geen cadeaubonnen gevonden</td>
+              </tr>
+            `;
+            return;
+          }
+
+          list.forEach(gc => {
+            const code = pick(gc, ['code']);
+            const saldo = Number(pick(gc, ['saldo'])) || 0;
+
+            // ondersteunt beide backend-varianten
+            const createdVal = pick(gc, ['createdAt', 'created_at']);
+            const lastVal    = pick(gc, ['laatsteTransactie', 'laatste_transactie']);
+            const gebruiktVal = pick(gc, ['gebruikt']);
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td class="mono">${String(code || '')}</td>
+              <td class="right">€ ${fmtMoney(saldo)}</td>
+              <td>${lastVal ? String(lastVal) : '-'}</td>
+              <td>${gebruiktVal ? 'Ja' : 'Nee'}</td>
+              <td>${fmtDateSafe(createdVal)}</td>
+              <td class="right">
+                <button class="btn" onclick="printCadeaubon('${String(code || '').replace(/'/g, "\\'")}')">🖨️ Print</button>
+              </td>
+            `;
+            body.appendChild(tr);
+          });
+        })
+        .withFailureHandler(err => {
+          skeleton.hidden = true;
+          body.innerHTML = `
+            <tr>
+              <td colspan="6" class="muted center">Fout bij laden cadeaubonnen</td>
+            </tr>
+          `;
+          console.error('apiGetCadeaubonnen failed:', err);
+        })
+        .apiGetCadeaubonnen();
+    }
+
+
+    function printCadeaubon(code) {
+      const w = window.open('', '_blank');
+      google.script.run.withSuccessHandler(html => {
+        w.document.open();
+        w.document.write(html);
+        w.document.close();
+      }).apiPrintCadeaubon(code);
+    }
+
+  </script>
+  <script>
+    /*INFO*/
+    function infoSearchShafts() {
+      const q = document.getElementById('shaftSearchInput').value;
+
+      google.script.run
+        .withSuccessHandler(res => {
+          const el = document.getElementById('shaftResults');
+          el.innerHTML = '';
+
+          if (!res.ok || !res.items.length) {
+            el.innerHTML = '<div class="muted">Geen resultaten</div>';
+            return;
+          }
+
+          res.items.forEach(s => {
+            const row = document.createElement('div');
+            row.className = 'shaft-row';
+            row.innerHTML = `
+              <strong>${s.brand}</strong><br>
+              ${s.model}<br>
+              <span class="muted">${s.material} • ${s.category}</span>
+            `;
+            row.onclick = () => infoLoadShaftDetail(s.shaft_id);
+            el.appendChild(row);
+          });
+        })
+        .apiInfoSearchShafts(q, {});
+    }
+
+    function infoLoadShaftDetail(shaftId) {
+      const el = document.getElementById('shaftDetail');
+      el.innerHTML = '<div class="muted">Laden...</div>';
+
+      google.script.run
+        .withSuccessHandler(res => {
+          if (!res.ok) {
+            el.innerHTML = '<div class="error">Fout bij laden</div>';
+            return;
+          }
+
+          const m = res.master;
+          const v = res.variants || [];
+
+          let html = `
+            <h2>${m.brand} – ${m.model}</h2>
+            <div class="muted">${m.material} • ${m.category}</div>
+            <p>${m.description || ''}</p>
+          `;
+
+          if (v.length) {
+            html += `
+              <h3>Varianten</h3>
+              <table class="shaft-variants">
+                <tr>
+                  <th>Flex</th>
+                  <th>Betekenis</th>
+                  <th>Gewicht (g)</th>
+                  <th>Launch</th>
+                  <th>Spin</th>
+                </tr>
+            `;
+
+            v.forEach(x => {
+              html += `
+                <tr>
+                  <td>${x.flex_label}</td>
+                  <td>${x.flex_meaning || ''}</td>
+                  <td>${x.weight_g || ''}</td>
+                  <td>${x.launch || ''}</td>
+                  <td>${x.spin || ''}</td>
+                </tr>
+              `;
+            });
+
+            html += '</table>';
+          } else {
+            html += '<div class="muted">Geen varianten gevonden</div>';
+          }
+
+          el.innerHTML = html;
+        })
+        .apiInfoGetShaftDetail(shaftId);
+    }
+
+
   </script>
 
   <!-- Service Worker tijdelijk uit (debugvriendelijk) -->
@@ -5511,10 +5850,17 @@
       const customerEmail = opts.customerEmail || '';
       const total         = Number(opts.total) || 0;
       const dateString    = opts.dateString || '';
-      const cart          = opts.cart || [];
-      const subtotal = Number(opts.subtotal || 0);
+      const lines = opts.lines || [];
       const discount = Number(opts.discount || 0);
+      const hasInruil = lines.some(l => l.sku === 'INRUIL');
 
+      const subtotal = lines
+        .filter(l => l.sku !== 'INRUIL')
+        .reduce((s,l)=> s + l.price * l.qty, 0);
+
+      const inruil = lines
+        .filter(l => l.sku === 'INRUIL')
+        .reduce((s,l)=> s + l.price, 0); // negatief
 
       const enc = encodeURIComponent;
       const fmt = (n)=> new Intl.NumberFormat('nl-NL',{
@@ -5628,14 +5974,22 @@
 
             <hr>
             <table>
-            ${opts.giftcard ? `
+              ${opts.giftcard ? `
                 <tr>
                   <td class="right" colspan="5">
                     Cadeaubon: ${fmt(opts.giftcard.amount)} (${opts.giftcard.code})
                   </td>
                 </tr>
               ` : ``}
-              ${discount > 0 ? `
+
+              ${hasInruil ? `
+                <tr>
+                  <td class="right" colspan="5">Subtotaal: ${fmt(subtotalNoInruil)}</td>
+                </tr>
+                <tr>
+                  <td class="right" colspan="5"><b>Inruil: ${fmt(inruil)}</b></td>
+                </tr>
+              ` : discount > 0 ? `
                 <tr>
                   <td class="right" colspan="5">Subtotaal: ${fmt(subtotal)}</td>
                 </tr>
@@ -5643,6 +5997,7 @@
                   <td class="right" colspan="5"><b>Korting: -${fmt(discount)}</b></td>
                 </tr>
               ` : ``}
+
               <tr>
                 <td class="right total" colspan="5">Totaal: ${fmt(total)}</td>
               </tr>
@@ -5946,6 +6301,9 @@
           loadVoorraadAantallen();
         }
 
+        if (viewName === 'cadeaubonnen') {
+          loadCadeaubonnen();
+        }
 
         if (viewName === 'voorraad-zoeken' || viewName === 'voorraad-inschrijven') {
           try { voorraadInitTabs?.(); } catch(e){}
