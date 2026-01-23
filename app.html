@@ -1683,6 +1683,31 @@
         <section id="view-info-shafts" class="view">
           <h1>Shaft Info</h1>
 
+          <button onclick="toggleAddShaftForm()">➕ Nieuwe shaft</button>
+
+          <div id="addShaftForm" style="display:none; margin-top:12px; max-width:500px;">
+            <input id="new_shaft_id" placeholder="shaft_id (UNIEK)" />
+            <input id="new_brand" placeholder="Merk" />
+            <input id="new_model" placeholder="Model" />
+
+            <select id="new_material">
+              <option value="Steel">Steel</option>
+              <option value="Graphite">Graphite</option>
+              <option value="Composite">Composite</option>
+            </select>
+
+            <select id="new_category">
+              <option value="Iron">Iron</option>
+              <option value="Wood">Wood</option>
+              <option value="Hybrid">Hybrid</option>
+            </select>
+
+            <textarea id="new_description" placeholder="Omschrijving"></textarea>
+
+            <button onclick="saveNewShaft()">Opslaan</button>
+          </div>
+
+
           <div class="info-shafts-container">
             <!-- LEFT: search + list -->
             <div class="info-shafts-list">
@@ -1704,12 +1729,67 @@
         </section>
 
         <section id="view-info-lengtes" class="view">
-           <h1>Lengte Info Volgt</h1>
+          <h1>Lengte Info</h1>
+
+          <div class="lengths-tabs">
+            <button onclick="showLengthsTab('standard')">Industry standard</button>
+            <button onclick="showLengthsTab('brand')">Per merk</button>
+            <button onclick="showLengthsTab('calc')">Calculator</button>
+          </div>
+
+          <div id="lengths-standard" class="lengths-tab"></div>
+          <div id="lengths-brand" class="lengths-tab" style="display:none;">
+            <div style="max-width:400px; margin-bottom:12px;">
+              <input
+                type="text"
+                id="lengthBrandInput"
+                placeholder="Merk (bijv. Callaway)"
+                oninput="loadBrandLengths()"
+                style="width:100%;"
+              />
+            </div>
+
+            <div id="brandLengthsResult"></div>
+          </div>
+          
+          <div id="lengths-calc" class="lengths-tab" style="display:none;">
+            <div style="max-width:400px;">
+              <select id="calcType">
+                <option value="height_cm">Lichaamslengte (cm)</option>
+                <option value="wrist_to_floor_cm">Wrist-to-floor (cm)</option>
+              </select>
+
+              <input
+                type="number"
+                id="calcValue"
+                placeholder="Waarde"
+                oninput="calculateLengthFit()"
+                style="margin-top:8px; width:100%;"
+              />
+
+              <div id="calcResult" style="margin-top:12px;"></div>
+            </div>
+          </div>
+
         </section>
 
+
         <section id="view-info-lofts" class="view">
-          <h1>Loft Info Volgt</h1>
+          <h1>Loft Info</h1>
+
+          <div style="max-width:400px; margin-bottom:12px;">
+            <input
+              type="text"
+              id="loftBrandInput"
+              placeholder="Merk (bijv. Callaway)"
+              oninput="loadLofts()"
+              style="width:100%;"
+            />
+          </div>
+
+          <div id="loftsResult"></div>
         </section>
+
 
 
         <section id="view-inkoop-partners" class="view">
@@ -4837,10 +4917,16 @@
           const el = document.getElementById('shaftResults');
           el.innerHTML = '';
 
-          if (!res.ok || !res.items.length) {
+          if (!res) {
+            el.innerHTML = '<div class="muted">Geen response van backend</div>';
+            return;
+          }
+
+          if (!res.ok || !res.items || !res.items.length) {
             el.innerHTML = '<div class="muted">Geen resultaten</div>';
             return;
           }
+
 
           res.items.forEach(s => {
             const row = document.createElement('div');
@@ -4854,6 +4940,9 @@
             el.appendChild(row);
           });
         })
+        .withFailureHandler(err => {
+          el.innerHTML = `<div class="error">${err.message || err}</div>`;
+        })
         .apiInfoSearchShafts(q, {});
     }
 
@@ -4863,10 +4952,16 @@
 
       google.script.run
         .withSuccessHandler(res => {
-          if (!res.ok) {
-            el.innerHTML = '<div class="error">Fout bij laden</div>';
+          if (!res) {
+            el.innerHTML = '<div class="error">Geen response van backend</div>';
             return;
           }
+
+          if (!res.ok) {
+            el.innerHTML = `<div class="error">${res.error || 'Fout bij laden'}</div>`;
+            return;
+          }
+
 
           const m = res.master;
           const v = res.variants || [];
@@ -4876,6 +4971,17 @@
             <div class="muted">${m.material} • ${m.category}</div>
             <p>${m.description || ''}</p>
           `;
+
+          html += `
+            <hr style="margin:16px 0;">
+            <button onclick="generateShaftAiSummary('${m.shaft_id}')">
+              ✨ Genereer AI samenvatting
+            </button>
+          `;
+
+          if (m.ai_summary) {
+            html += `<p><em>${m.ai_summary}</em></p>`;
+          }
 
           if (v.length) {
             html += `
@@ -4907,11 +5013,254 @@
             html += '<div class="muted">Geen varianten gevonden</div>';
           }
 
+          html += `
+            <hr style="margin:16px 0;">
+            <h3>➕ Variant toevoegen</h3>
+
+            <div class="shaft-variant-form">
+              <input id="var_flex_label" placeholder="Flex (bijv. S / 6.0)" />
+              <input id="var_flex_meaning" placeholder="Betekenis (Stiff / Regular)" />
+              <input id="var_weight_g" placeholder="Gewicht (g)" type="number" />
+              <input id="var_torque" placeholder="Torque" />
+              <input id="var_launch" placeholder="Launch (Low/Mid/High)" />
+              <input id="var_spin" placeholder="Spin (Low/Mid/High)" />
+              <button onclick="saveShaftVariant('${m.shaft_id}')">Variant opslaan</button>
+            </div>
+          `;
+
           el.innerHTML = html;
+
+        })
+        .withFailureHandler(err => {
+          el.innerHTML = `<div class="error">${err.message || err}</div>`;
         })
         .apiInfoGetShaftDetail(shaftId);
     }
 
+    function saveShaftVariant(shaftId) {
+      const data = {
+        variant_id: shaftId + '_' + document.getElementById('var_flex_label').value,
+        shaft_id: shaftId,
+        flex_label: document.getElementById('var_flex_label').value.trim(),
+        flex_meaning: document.getElementById('var_flex_meaning').value.trim(),
+        weight_g: document.getElementById('var_weight_g').value,
+        torque: document.getElementById('var_torque').value,
+        launch: document.getElementById('var_launch').value,
+        spin: document.getElementById('var_spin').value
+      };
+
+      if (!data.flex_label) {
+        alert('Flex is verplicht');
+        return;
+      }
+
+      google.script.run.withSuccessHandler(res => {
+        if (!res) {
+          alert('Geen response van backend');
+          return;
+        }
+
+        if (!res.ok) {
+          alert(res.error || 'Fout bij opslaan');
+          return;
+        }
+
+        alert('Variant opgeslagen');
+        infoLoadShaftDetail(shaftId);
+      })
+      .withFailureHandler(err => {
+        el.innerHTML = `<div class="error">${err.message || err}</div>`;
+      })
+      .apiInfoAddShaftVariant(data);
+    }
+
+    function toggleAddShaftForm() {
+      const el = document.getElementById('addShaftForm');
+      el.style.display = (el.style.display === 'none') ? 'block' : 'none';
+    }
+
+    function saveNewShaft() {
+      const data = {
+        shaft_id: document.getElementById('new_shaft_id').value.trim(),
+        brand: document.getElementById('new_brand').value.trim(),
+        model: document.getElementById('new_model').value.trim(),
+        material: document.getElementById('new_material').value,
+        category: document.getElementById('new_category').value,
+        description: document.getElementById('new_description').value,
+        active: true
+      };
+
+      if (!data.shaft_id || !data.brand || !data.model) {
+        alert('shaft_id, merk en model zijn verplicht');
+        return;
+      }
+
+      google.script.run.withSuccessHandler(res => {
+        if (!res) {
+          alert('Geen response van backend');
+          return;
+        }
+
+        if (!res.ok) {
+          alert(res.error || 'Fout bij opslaan');
+          return;
+        }
+
+
+
+        alert('Shaft opgeslagen');
+        toggleAddShaftForm();
+        infoSearchShafts();
+      })
+      .withFailureHandler(err => {
+        el.innerHTML = `<div class="error">${err.message || err}</div>`;
+      })
+      .apiInfoAddShaftMaster(data);
+    }
+
+
+    function showLengthsTab(tab) {
+      ['standard', 'brand', 'calc'].forEach(t => {
+        document.getElementById('lengths-' + t).style.display =
+          (t === tab ? 'block' : 'none');
+      });
+
+      if (tab === 'standard') loadStandardLengths();
+    }
+
+    function loadStandardLengths() {
+      const el = document.getElementById('lengths-standard');
+      el.innerHTML = 'Laden...';
+
+      google.script.run.withSuccessHandler(res => {
+        let html = '<table><tr><th>Club</th><th>Lengte (in)</th></tr>';
+        res.items.forEach(x => {
+          html += `<tr><td>${x.club_type}</td><td>${x.standard_length_in}</td></tr>`;
+        });
+        html += '</table>';
+        el.innerHTML = html;
+      }).apiInfoGetStandardLengths();
+    }
+
+    function calculateLengthFit() {
+      const val = Number(document.getElementById('calcValue').value);
+      const type = document.getElementById('calcType').value;
+      const out = document.getElementById('calcResult');
+
+      if (!val) {
+        out.innerHTML = '';
+        return;
+      }
+
+      google.script.run.withSuccessHandler(res => {
+        out.innerHTML = `
+          Aanbevolen lengte-adjust: <strong>${res.adjust > 0 ? '+' : ''}${res.adjust}"</strong>
+        `;
+      }).apiInfoCalculateFit(type, val);
+    }
+
+    function loadBrandLengths() {
+      const brand = document.getElementById('lengthBrandInput').value.trim();
+      const el = document.getElementById('brandLengthsResult');
+
+      if (!brand) {
+        el.innerHTML = '<div class="muted">Voer een merk in</div>';
+        return;
+      }
+
+      el.innerHTML = 'Laden...';
+
+      google.script.run.withSuccessHandler(res => {
+        google.script.run.withSuccessHandler(std => {
+          const stdMap = {};
+          std.items.forEach(x => {
+            stdMap[x.club_type] = Number(x.standard_length_in);
+          });
+
+          let html = `
+            <table>
+              <tr>
+                <th>Club</th>
+                <th>${brand}</th>
+                <th>Standaard</th>
+                <th>Verschil</th>
+              </tr>
+          `;
+
+          res.items.forEach(x => {
+            const stdLen = stdMap[x.club_type];
+            const diff = (stdLen != null)
+              ? (Number(x.length_in) - stdLen).toFixed(2)
+              : '';
+
+            html += `
+              <tr>
+                <td>${x.club_type}</td>
+                <td>${x.length_in}</td>
+                <td>${stdLen ?? ''}</td>
+                <td>${diff ? (diff > 0 ? '+' : '') + diff : ''}</td>
+              </tr>
+            `;
+          });
+
+          html += '</table>';
+          el.innerHTML = html;
+        }).apiInfoGetStandardLengths();
+      }).apiInfoGetBrandLengths(brand);
+    }
+
+    function loadLofts() {
+      const brand = document.getElementById('loftBrandInput').value.trim();
+      const el = document.getElementById('loftsResult');
+
+      el.innerHTML = 'Laden...';
+
+      google.script.run.withSuccessHandler(res => {
+        if (!res.items.length) {
+          el.innerHTML = '<div class="muted">Geen lofts gevonden</div>';
+          return;
+        }
+
+        let html = `
+          <table>
+            <tr>
+              <th>Merk</th>
+              <th>Club</th>
+              <th>Loft (°)</th>
+            </tr>
+        `;
+
+        res.items.forEach(x => {
+          html += `
+            <tr>
+              <td>${x.brand}</td>
+              <td>${x.club_type}</td>
+              <td>${x.loft_deg}</td>
+            </tr>
+          `;
+        });
+
+        html += '</table>';
+        el.innerHTML = html;
+      }).apiInfoGetLofts(brand);
+    }
+
+    function generateShaftAiSummary(shaftId) {
+      if (!confirm('AI samenvatting genereren?')) return;
+
+      google.script.run
+        .withSuccessHandler(res => {
+          if (!res || !res.ok) {
+            alert(res?.error || 'AI generatie mislukt');
+            return;
+          }
+          infoLoadShaftDetail(shaftId);
+        })
+        .withFailureHandler(err => {
+          alert(err.message || err);
+        })
+        .apiInfoGenerateShaftSummary(shaftId);
+    }
 
   </script>
 
