@@ -1098,6 +1098,29 @@
     text-align: left;
   }
 
+  /* INFO – Shafts */
+  #view-info-shafts .shaft-row {
+    padding: 10px 8px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+  }
+
+  #view-info-shafts .shaft-row:hover {
+    background: var(--accent-light);
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .form-grid label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
 </style>
 </head>
 <body>
@@ -1681,114 +1704,225 @@
         </section>
 
         <section id="view-info-shafts" class="view">
-          <h1>Shaft Info</h1>
 
-          <button onclick="toggleAddShaftForm()">➕ Nieuwe shaft</button>
+          <div class="wrap">
+            <h1>Shaft Info</h1>
 
-          <div id="addShaftForm" style="display:none; margin-top:12px; max-width:500px;">
-            <input id="new_shaft_id" placeholder="shaft_id (UNIEK)" />
-            <input id="new_brand" placeholder="Merk" />
-            <input id="new_model" placeholder="Model" />
-
-            <select id="new_material">
-              <option value="Steel">Steel</option>
-              <option value="Graphite">Graphite</option>
-              <option value="Composite">Composite</option>
-            </select>
-
-            <select id="new_category">
-              <option value="Iron">Iron</option>
-              <option value="Wood">Wood</option>
-              <option value="Hybrid">Hybrid</option>
-            </select>
-
-            <textarea id="new_description" placeholder="Omschrijving"></textarea>
-
-            <button onclick="saveNewShaft()">Opslaan</button>
-          </div>
-
-
-          <div class="info-shafts-container">
-            <!-- LEFT: search + list -->
-            <div class="info-shafts-list">
-              <input
-                type="text"
-                id="shaftSearchInput"
-                placeholder="Zoek shaft (merk, model...)"
-                oninput="infoSearchShafts()"
-              />
-
-              <div id="shaftResults" class="shaft-results"></div>
+            <!-- ACTIES -->
+            <div style="margin-bottom:16px;">
+              <button class="btn btn-primary" onclick="toggleAddShaftForm()">
+                ➕ Nieuwe shaft
+              </button>
             </div>
 
-            <!-- RIGHT: detail -->
-            <div class="info-shafts-detail" id="shaftDetail">
-              <div class="muted">Selecteer een shaft om details te bekijken</div>
+            <!-- NIEUWE SHAFT FORM -->
+            <div id="addShaftForm"
+                class="sessie-card"
+                style="display:none; max-width:520px; margin-bottom:24px;">
+
+              <h4>Nieuwe shaft</h4>
+
+              <div class="form-grid">
+
+                <label>
+                  <span class="muted">Shaft ID</span>
+                  <input id="new_shaft_id" placeholder="Bijv. TT_DG_STEEL_IRON" />
+                </label>
+
+                <label>
+                  <span class="muted">Merk</span>
+                  <input id="new_brand" placeholder="Bijv. True Temper" />
+                </label>
+
+                <label>
+                  <span class="muted">Model</span>
+                  <input id="new_model" placeholder="Bijv. Dynamic Gold Steel" />
+                </label>
+
+                <label>
+                  <span class="muted">Materiaal</span>
+                  <select id="new_material">
+                    <option value="Steel">Steel</option>
+                    <option value="Graphite">Graphite</option>
+                    <option value="Composite">Composite</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span class="muted">Categorie</span>
+                  <select id="new_category">
+                    <option value="Iron">Iron</option>
+                    <option value="Wood">Wood</option>
+                    <option value="Hybrid">Hybrid</option>
+                  </select>
+                </label>
+
+                <label style="grid-column:1/-1;">
+                  <span class="muted">Omschrijving</span>
+                  <textarea
+                    id="new_description"
+                    rows="3"
+                    placeholder="Korte functionele omschrijving"
+                  ></textarea>
+                </label>
+
+              </div>
+
+              <div style="margin-top:16px;">
+                <button class="btn btn-primary" onclick="saveNewShaft()">
+                  Opslaan
+                </button>
+              </div>
+            </div>
+
+
+            <!-- SHAFTS GRID -->
+            <div class="sessie-grid">
+
+              <!-- LINKER KOLOM: ZOEKEN + LIJST -->
+              <div class="sessie-card col-4">
+                <h4>Shafts</h4>
+
+                <input
+                  type="text"
+                  id="shaftSearchInput"
+                  placeholder="Zoek shaft (merk, model...)"
+                  oninput="infoSearchShafts()"
+                  style="margin-bottom:12px;"
+                />
+
+                <!-- SKELETON LIST -->
+                <div id="shaftListSkeleton">
+                  <div class="skeleton skeleton-row"></div>
+                  <div class="skeleton skeleton-row"></div>
+                  <div class="skeleton skeleton-row"></div>
+                </div>
+
+                <!-- RESULTATEN -->
+                <div id="shaftResults" style="display:none;"></div>
+              </div>
+
+              <!-- RECHTER KOLOM: DETAIL -->
+              <div class="sessie-card col-8">
+                <div id="shaftDetail">
+                  <div class="muted">Selecteer een shaft om details te bekijken</div>
+                </div>
+              </div>
+
             </div>
           </div>
         </section>
+
 
         <section id="view-info-lengtes" class="view">
-          <h1>Lengte Info</h1>
+          <div class="wrap">
+            <h1>Lengte info</h1>
 
-          <div class="lengths-tabs">
-            <button onclick="showLengthsTab('standard')">Industry standard</button>
-            <button onclick="showLengthsTab('brand')">Per merk</button>
-            <button onclick="showLengthsTab('calc')">Calculator</button>
-          </div>
-
-          <div id="lengths-standard" class="lengths-tab"></div>
-          <div id="lengths-brand" class="lengths-tab" style="display:none;">
-            <div style="max-width:400px; margin-bottom:12px;">
-              <input
-                type="text"
-                id="lengthBrandInput"
-                placeholder="Merk (bijv. Callaway)"
-                oninput="loadBrandLengths()"
-                style="width:100%;"
-              />
+            <!-- Tabs -->
+            <div class="tab-row" style="margin-bottom:16px;">
+              <button class="btn btn-ghost" onclick="showLengthsTab('standard')">
+                Standaard
+              </button>
+              <button class="btn btn-ghost" onclick="showLengthsTab('brand')">
+                Per merk
+              </button>
+              <button class="btn btn-ghost" onclick="showLengthsTab('calc')">
+                Calculator
+              </button>
             </div>
 
-            <div id="brandLengthsResult"></div>
-          </div>
-          
-          <div id="lengths-calc" class="lengths-tab" style="display:none;">
-            <div style="max-width:400px;">
-              <select id="calcType">
-                <option value="height_cm">Lichaamslengte (cm)</option>
-                <option value="wrist_to_floor_cm">Wrist-to-floor (cm)</option>
-              </select>
+            <!-- CONTENT -->
+            <div class="sessie-card">
 
-              <input
-                type="number"
-                id="calcValue"
-                placeholder="Waarde"
-                oninput="calculateLengthFit()"
-                style="margin-top:8px; width:100%;"
-              />
+              <!-- STANDARD -->
+              <div id="lengths-standard">
+                <h4>Standaard lengtes</h4>
 
-              <div id="calcResult" style="margin-top:12px;"></div>
+                <div id="lengthsStandardSkeleton">
+                  <div class="skeleton skel-line"></div>
+                  <div class="skeleton skel-line"></div>
+                  <div class="skeleton skel-line"></div>
+                </div>
+
+                <div id="lengthsStandardTable" style="display:none;"></div>
+              </div>
+
+              <!-- PER MERK -->
+              <div id="lengths-brand" style="display:none;">
+                <h4>Lengtes per merk</h4>
+
+                <input
+                  id="lengthBrandInput"
+                  placeholder="Merk (bijv. Callaway)"
+                  oninput="loadBrandLengths()"
+                  style="margin-bottom:12px;"
+                />
+
+                <div id="lengthsBrandSkeleton">
+                  <div class="skeleton skel-line"></div>
+                  <div class="skeleton skel-line"></div>
+                </div>
+
+                <div id="brandLengthsResult" style="display:none;"></div>
+              </div>
+
+              <!-- CALCULATOR -->
+              <div id="lengths-calc" style="display:none;">
+                <h4>Lengte calculator</h4>
+
+                <div class="form-grid" style="max-width:360px;">
+                  <label>
+                    <span class="muted">Type</span>
+                    <select id="calcType">
+                      <option value="height_cm">Lichaamslengte (cm)</option>
+                      <option value="wrist_to_floor_cm">Wrist-to-floor (cm)</option>
+                    </select>
+                  </label>
+
+                  <label>
+                    <span class="muted">Waarde</span>
+                    <input
+                      type="number"
+                      id="calcValue"
+                      placeholder="Bijv. 180"
+                      oninput="calculateLengthFit()"
+                    />
+                  </label>
+                </div>
+
+                <div id="calcResult" style="margin-top:16px;"></div>
+              </div>
+
             </div>
           </div>
-
         </section>
+
 
 
         <section id="view-info-lofts" class="view">
-          <h1>Loft Info</h1>
+          <div class="wrap">
+            <h1>Loft info</h1>
 
-          <div style="max-width:400px; margin-bottom:12px;">
-            <input
-              type="text"
-              id="loftBrandInput"
-              placeholder="Merk (bijv. Callaway)"
-              oninput="loadLofts()"
-              style="width:100%;"
-            />
+            <div class="sessie-card">
+
+              <input
+                id="loftBrandInput"
+                placeholder="Merk (bijv. Callaway)"
+                oninput="loadLofts()"
+                style="margin-bottom:12px;"
+              />
+
+              <div id="loftsSkeleton">
+                <div class="skeleton skel-line"></div>
+                <div class="skeleton skel-line"></div>
+              </div>
+
+              <div id="loftsResult" style="display:none;"></div>
+
+            </div>
           </div>
-
-          <div id="loftsResult"></div>
         </section>
+
 
 
 
@@ -4910,23 +5044,26 @@
   <script>
     /*INFO*/
     function infoSearchShafts() {
-      const q = document.getElementById('shaftSearchInput').value;
+      const input = document.getElementById('shaftSearchInput');
+      const q = input ? input.value : '';
+
+      const skel = document.getElementById('shaftListSkeleton');
+      const list = document.getElementById('shaftResults');
+
+      skel.style.display = 'block';
+      list.style.display = 'none';
 
       google.script.run
         .withSuccessHandler(res => {
-          const el = document.getElementById('shaftResults');
-          el.innerHTML = '';
+          skel.style.display = 'none';
+          list.style.display = 'block';
 
-          if (!res) {
-            el.innerHTML = '<div class="muted">Geen response van backend</div>';
+          list.innerHTML = '';
+
+          if (!res || !res.ok || !res.items || !res.items.length) {
+            list.innerHTML = '<div class="muted">Geen resultaten</div>';
             return;
           }
-
-          if (!res.ok || !res.items || !res.items.length) {
-            el.innerHTML = '<div class="muted">Geen resultaten</div>';
-            return;
-          }
-
 
           res.items.forEach(s => {
             const row = document.createElement('div');
@@ -4937,18 +5074,26 @@
               <span class="muted">${s.material} • ${s.category}</span>
             `;
             row.onclick = () => infoLoadShaftDetail(s.shaft_id);
-            el.appendChild(row);
+            list.appendChild(row);
           });
         })
-        .withFailureHandler(err => {
-          el.innerHTML = `<div class="error">${err.message || err}</div>`;
+        .withFailureHandler(() => {
+          skel.style.display = 'none';
+          list.style.display = 'block';
+          list.innerHTML = '<div class="error">Laden mislukt</div>';
         })
         .apiInfoSearchShafts(q, {});
     }
 
+
     function infoLoadShaftDetail(shaftId) {
       const el = document.getElementById('shaftDetail');
-      el.innerHTML = '<div class="muted">Laden...</div>';
+      el.innerHTML = `
+        <div class="skeleton skel-big"></div>
+        <div class="skeleton skel-line"></div>
+        <div class="skeleton skel-line"></div>
+        <div class="skeleton skel-panel" style="margin-top:12px;"></div>
+      `;
 
       google.script.run
         .withSuccessHandler(res => {
@@ -4974,9 +5119,23 @@
 
           html += `
             <hr style="margin:16px 0;">
-            <button onclick="generateShaftAiSummary('${m.shaft_id}')">
-              ✨ Genereer AI samenvatting
-            </button>
+
+            <div id="aiBlock">
+              ${m.ai_summary
+                ? `<p class="muted" style="margin-bottom:12px;">
+                    <em>${m.ai_summary}</em>
+                  </p>`
+                : `<div class="muted" style="margin-bottom:12px;">
+                    Nog geen AI beschrijving
+                  </div>`
+              }
+
+              <button class="btn btn-ghost"
+                      onclick="showAiConfirm('${m.shaft_id}')">
+                ✨ ${m.ai_summary ? 'AI opnieuw genereren' : 'Genereer AI samenvatting'}
+              </button>
+
+            </div>
           `;
 
           if (m.ai_summary) {
@@ -5017,14 +5176,59 @@
             <hr style="margin:16px 0;">
             <h3>➕ Variant toevoegen</h3>
 
-            <div class="shaft-variant-form">
-              <input id="var_flex_label" placeholder="Flex (bijv. S / 6.0)" />
-              <input id="var_flex_meaning" placeholder="Betekenis (Stiff / Regular)" />
-              <input id="var_weight_g" placeholder="Gewicht (g)" type="number" />
-              <input id="var_torque" placeholder="Torque" />
-              <input id="var_launch" placeholder="Launch (Low/Mid/High)" />
-              <input id="var_spin" placeholder="Spin (Low/Mid/High)" />
-              <button onclick="saveShaftVariant('${m.shaft_id}')">Variant opslaan</button>
+            <div class="sessie-card" style="margin-top:20px;">
+              <h4>Variant toevoegen</h4>
+
+              <div class="form-grid">
+
+                <label>
+                  <span class="muted">Flex code</span>
+                  <input id="var_flex_label" placeholder="S / R / 6.0" />
+                </label>
+
+                <label>
+                  <span class="muted">Flex betekenis</span>
+                  <input id="var_flex_meaning" placeholder="Stiff / Regular" />
+                </label>
+
+                <label>
+                  <span class="muted">Gewicht (g)</span>
+                  <input id="var_weight_g" type="number" placeholder="120" />
+                </label>
+
+                <label>
+                  <span class="muted">Torque</span>
+                  <input id="var_torque" placeholder="Bijv. 1.8" />
+                </label>
+
+                <label>
+                  <span class="muted">Launch</span>
+                  <select id="var_launch">
+                    <option value="">–</option>
+                    <option>Low</option>
+                    <option>Mid</option>
+                    <option>High</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span class="muted">Spin</span>
+                  <select id="var_spin">
+                    <option value="">–</option>
+                    <option>Low</option>
+                    <option>Mid</option>
+                    <option>High</option>
+                  </select>
+                </label>
+
+              </div>
+
+              <div style="margin-top:16px;">
+                <button class="btn btn-primary"
+                        onclick="saveShaftVariant('${m.shaft_id}')">
+                  Variant opslaan
+                </button>
+              </div>
             </div>
           `;
 
@@ -5118,6 +5322,68 @@
       .apiInfoAddShaftMaster(data);
     }
 
+    function showAiConfirm(shaftId) {
+      const el = document.getElementById('aiBlock');
+      if (!el) return;
+
+      el.innerHTML = `
+        <div class="muted" style="margin-bottom:8px;">
+          AI beschrijving genereren?
+        </div>
+
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-ghost"
+                  onclick="infoLoadShaftDetail('${shaftId}')">
+            Annuleren
+          </button>
+
+          <button class="btn btn-primary"
+                  onclick="runAiGeneration('${shaftId}')">
+            OK
+          </button>
+        </div>
+      `;
+    }
+
+    function runAiGeneration(shaftId) {
+      const el = document.getElementById('aiBlock');
+      if (!el) return;
+
+      // Skeleton / loading state
+      el.innerHTML = `
+        <div class="skeleton skel-line"></div>
+        <div class="skeleton skel-line" style="width:80%;"></div>
+      `;
+
+      google.script.run
+        .withSuccessHandler(res => {
+          if (!res || !res.ok) {
+            el.innerHTML = `
+              <div class="error">
+                ${res?.error || 'AI generatie mislukt'}
+              </div>
+              <button class="btn btn-ghost"
+                      onclick="showAiConfirm('${shaftId}')">
+                Opnieuw proberen
+              </button>
+            `;
+            return;
+          }
+
+          // Reload detail zodat AI summary netjes verschijnt
+          infoLoadShaftDetail(shaftId);
+        })
+        .withFailureHandler(err => {
+          el.innerHTML = `
+            <div class="error">${err.message || err}</div>
+            <button class="btn btn-ghost"
+                    onclick="showAiConfirm('${shaftId}')">
+              Opnieuw proberen
+            </button>
+          `;
+        })
+        .apiInfoGenerateShaftSummary(shaftId);
+    }
 
     function showLengthsTab(tab) {
       ['standard', 'brand', 'calc'].forEach(t => {
@@ -5129,16 +5395,22 @@
     }
 
     function loadStandardLengths() {
-      const el = document.getElementById('lengths-standard');
-      el.innerHTML = 'Laden...';
+      const skel = document.getElementById('lengthsStandardSkeleton');
+      const table = document.getElementById('lengthsStandardTable');
+
+      skel.style.display = 'block';
+      table.style.display = 'none';
 
       google.script.run.withSuccessHandler(res => {
+        skel.style.display = 'none';
+        table.style.display = 'block';
+
         let html = '<table><tr><th>Club</th><th>Lengte (in)</th></tr>';
         res.items.forEach(x => {
           html += `<tr><td>${x.club_type}</td><td>${x.standard_length_in}</td></tr>`;
         });
         html += '</table>';
-        el.innerHTML = html;
+        table.innerHTML = html;
       }).apiInfoGetStandardLengths();
     }
 
@@ -5162,6 +5434,9 @@
     function loadBrandLengths() {
       const brand = document.getElementById('lengthBrandInput').value.trim();
       const el = document.getElementById('brandLengthsResult');
+      const skel = document.getElementById('lengthsBrandSkeleton');
+      skel.style.display = 'block';
+
 
       if (!brand) {
         el.innerHTML = '<div class="muted">Voer een merk in</div>';
@@ -5204,14 +5479,26 @@
           });
 
           html += '</table>';
+          skel.style.display = 'none';
+          el.style.display = 'block';
           el.innerHTML = html;
-        }).apiInfoGetStandardLengths();
-      }).apiInfoGetBrandLengths(brand);
+        })
+        .apiInfoGetStandardLengths();
+      })
+      .withFailureHandler(err => {
+          skel.style.display = 'none';
+          alert(err.message || err);
+        })
+      .apiInfoGetBrandLengths(brand);
     }
 
     function loadLofts() {
       const brand = document.getElementById('loftBrandInput').value.trim();
       const el = document.getElementById('loftsResult');
+      const skel = document.getElementById('loftsSkeleton');
+      skel.style.display = 'block';
+      el.style.display = 'none';
+
 
       el.innerHTML = 'Laden...';
 
@@ -5241,6 +5528,8 @@
         });
 
         html += '</table>';
+        skel.style.display = 'none';
+        el.style.display = 'block';
         el.innerHTML = html;
       }).apiInfoGetLofts(brand);
     }
@@ -5261,6 +5550,22 @@
         })
         .apiInfoGenerateShaftSummary(shaftId);
     }
+
+    // 🔽 DIT TOEVOEGEN (helemaal onderaan)
+    document.addEventListener('DOMContentLoaded', () => {
+
+      // Lengtes: standaard lijst direct laden
+      if (document.getElementById('lengths-standard')) {
+        loadStandardLengths();
+      }
+
+      // Lofts: lijst direct laden
+      if (document.getElementById('loftsResult')) {
+        loadLofts();
+      }
+
+    });
+
 
   </script>
 
@@ -6652,6 +6957,25 @@
 
         if (viewName === 'cadeaubonnen') {
           loadCadeaubonnen();
+        }
+
+        if (viewName === 'info-shafts') {
+          infoSearchShafts();
+        }
+        if (viewName === 'view-info-lengtes') {
+          showLengthsTab('standard');
+
+          // 🔑 EXPLICIET laden (betrouwbaar)
+          setTimeout(() => {
+            loadStandardLengths();
+          }, 0);
+        }
+
+        if (viewName === 'view-info-lofts') {
+          // 🔑 ook hier expliciet
+          setTimeout(() => {
+            loadLofts();
+          }, 0);
         }
 
         if (viewName === 'voorraad-zoeken' || viewName === 'voorraad-inschrijven') {
