@@ -11,6 +11,9 @@ let INFO_CACHE = {
   lofts: null,
 };
 
+let INFO_RUNTIME_CACHE = {
+  shaftsIndex: null,
+};
 
 function getInfoSheetData_(sheetName) {
   const ss = SpreadsheetApp.openById(INFO_DB_SPREADSHEET_ID);
@@ -98,49 +101,54 @@ function apiInfoSearchShafts(query, filters = {}) {
 
 function apiInfoGetShaftDetail(shaftId) {
   try {
-    // ❌ NIET uit cache returnen
-    // 👉 altijd vers, plain objects opbouwen
+    const { masterIdx, variantIdx } = getShaftsIndex_();
 
-    const master = getInfoSheetData_('Shafts_Master');
-    const variants = getInfoSheetData_('Shafts_Variants');
-
-    let masterObj = null;
-    master.rows.forEach(r => {
-      const o = {};
-      master.headers.forEach((h, i) => o[h] = r[i]);
-      if (o.shaft_id === shaftId && o.active !== false) {
-        masterObj = o;
-      }
-    });
-
-    if (!masterObj) {
-      return { ok: false, error: 'Shaft niet gevonden' };
+    const master = masterIdx[shaftId];
+    if (!master) {
+      return JSON.parse(JSON.stringify({
+        ok: false,
+        error: 'Shaft niet gevonden'
+      }));
     }
 
-    const variantList = [];
-    variants.rows.forEach(r => {
-      const o = {};
-      variants.headers.forEach((h, i) => o[h] = r[i]);
-      if (o.shaft_id === shaftId) {
-        variantList.push(o);
-      }
-    });
+    const variants = variantIdx[shaftId] || [];
 
+    // 🔑 JSON-safe return (belangrijk!)
     return JSON.parse(JSON.stringify({
       ok: true,
-      master: masterObj,
-      variants: variantList
+      master,
+      variants
     }));
-
 
   } catch (e) {
     return JSON.parse(JSON.stringify({
       ok: false,
-      error: 'Shaft niet gevonden'
+      error: String(e.message || e)
     }));
-
   }
 }
+
+function apiInfoGetAllShaftsWithDetails() {
+  try {
+    const { masterIdx, variantIdx } = getShaftsIndex_();
+
+    const items = Object.values(masterIdx).map(m => ({
+      master: m,
+      variants: variantIdx[m.shaft_id] || []
+    }));
+
+    return JSON.parse(JSON.stringify({
+      ok: true,
+      items
+    }));
+  } catch (e) {
+    return JSON.parse(JSON.stringify({
+      ok: false,
+      error: String(e.message || e)
+    }));
+  }
+}
+
 
 function debug_Info_SearchShafts() {
   const res = apiInfoSearchShafts('dynamic', {});
@@ -302,13 +310,28 @@ function apiInfoGenerateShaftSummary(shaftId) {
     });
 
     // 2️⃣ Prompt bouwen (simpel & kort)
-    const prompt =
-      `Schrijf een korte, praktische productsamenvatting in het Nederlands (2–3 zinnen).
-      Materiaal: ${master.material}
-      Categorie: ${master.category}
-      Merk: ${master.brand}
-      Model: ${master.model}
-      Varianten: ${variants.map(v => v.flex_label).join(', ')}`;
+    const prompt = `
+    Je bent een golfclubfitter die klanten in de winkel neutraal uitlegt wat een shaft bijzonder maakt.
+    Schrijf in het Nederlands EXACT 2–3 zinnen, zonder verkooppraat, zonder vage claims.
+
+    Doel: Leg uit wat het model/nummer betekent (bijv. 105/120 of Red/Black), en wat je praktisch merkt t.o.v. een nabije variant binnen dezelfde familie.
+    Als je een detail NIET zeker weet, zoek dan op de website van de fabrikant naar het model. Als je het daar ook niet kunt vinden, schrijf dan letterlijk: "Onbekend" voor dat detail (niet gokken, niet opvullen).
+
+    Vereisten:
+    - Noem 1x wat het getal/label in de modelnaam betekent (bijv. gewichtsklasse in gram: ja/nee, en hoe dat uitwerkt).
+    - Noem 1x het verwachte effect op gevoel/tempo en ballflight (launch/spin) in simpele woorden.
+    - Vermijd woorden als "hoogwaardig", "optimale", "perfect", "uitstekend".
+
+    Context (alleen dit gebruiken):
+    Merk: ${master.brand}
+    Model: ${master.model}
+    Materiaal: ${master.material}
+    Categorie: ${master.category}
+    Varianten/flexes: ${variants.map(v => v.flex_label).join(', ')}
+
+    Output: alleen de 2–3 zinnen, geen opsomming, geen titel.
+    `;
+
 
     // 3️⃣ OpenAI call
     const response = UrlFetchApp.fetch(

@@ -1109,6 +1109,16 @@
     background: var(--accent-light);
   }
 
+  /* Sticky detail panel for shafts */
+  #view-info-shafts .sessie-card.col-8 {
+    position: sticky;
+    top: 16px; /* afstand tot top, pas aan indien nodig */
+    align-self: flex-start;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+  }
+
+
   .form-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -5043,6 +5053,9 @@
   </script>
   <script>
     /*INFO*/
+
+    let SHAFT_DETAIL_CACHE = {};
+
     function infoSearchShafts() {
       const input = document.getElementById('shaftSearchInput');
       const q = input ? input.value : '';
@@ -5054,36 +5067,106 @@
       list.style.display = 'none';
 
       google.script.run
-        .withSuccessHandler(res => {
-          skel.style.display = 'none';
-          list.style.display = 'block';
+      .withSuccessHandler(res => {
+        skel.style.display = 'none';
+        list.style.display = 'block';
+        list.innerHTML = '';
 
-          list.innerHTML = '';
+        if (!res || !res.ok || !res.items.length) {
+          list.innerHTML = '<div class="muted">Geen resultaten</div>';
+          return;
+        }
 
-          if (!res || !res.ok || !res.items || !res.items.length) {
-            list.innerHTML = '<div class="muted">Geen resultaten</div>';
-            return;
+        // 🔑 CACHE VULLEN
+        SHAFT_DETAIL_CACHE = {};
+        res.items.forEach(item => {
+          SHAFT_DETAIL_CACHE[item.master.shaft_id] = item;
+        });
+
+        // Lijst renderen
+        res.items.forEach(item => {
+          const s = item.master;
+          const row = document.createElement('div');
+          row.className = 'shaft-row';
+          row.innerHTML = `
+            <strong>${s.brand}</strong><br>
+            ${s.model}<br>
+            <span class="muted">${s.material} • ${s.category}</span>
+          `;
+          row.onclick = () => renderShaftDetailFromCache(s.shaft_id);
+          list.appendChild(row);
+        });
+      })
+      .apiInfoGetAllShaftsWithDetails();
+
+    }
+
+    function renderShaftDetailFromCache(shaftId) {
+      const el = document.getElementById('shaftDetail');
+      const data = SHAFT_DETAIL_CACHE[shaftId];
+
+      if (!data) {
+        el.innerHTML = '<div class="error">Detail niet gevonden</div>';
+        return;
+      }
+
+      const m = data.master;
+      const v = data.variants || [];
+
+      let html = `
+        <h2>${m.brand} – ${m.model}</h2>
+        <div class="muted">${m.material} • ${m.category}</div>
+        <p>${m.description || ''}</p>
+      `;
+
+      if (v.length) {
+        html += `
+          <h3>Varianten</h3>
+          <table class="shaft-variants">
+            <tr>
+              <th>Flex</th>
+              <th>Betekenis</th>
+              <th>Gewicht (g)</th>
+              <th>Launch</th>
+              <th>Spin</th>
+            </tr>
+        `;
+
+        v.forEach(x => {
+          html += `
+            <tr>
+              <td>${x.flex_label || ''}</td>
+              <td>${x.flex_meaning || ''}</td>
+              <td>${x.weight_g || ''}</td>
+              <td>${x.launch || ''}</td>
+              <td>${x.spin || ''}</td>
+            </tr>
+          `;
+        });
+
+        html += '</table>';
+      } else {
+        html += '<div class="muted">Geen varianten</div>';
+      }
+
+      html += `
+        <hr style="margin:16px 0;">
+        <div id="aiBlock">
+          ${m.ai_summary
+            ? `<p class="muted"><em>${m.ai_summary}</em></p>`
+            : `<div class="muted">Nog geen AI beschrijving</div>`
           }
 
-          res.items.forEach(s => {
-            const row = document.createElement('div');
-            row.className = 'shaft-row';
-            row.innerHTML = `
-              <strong>${s.brand}</strong><br>
-              ${s.model}<br>
-              <span class="muted">${s.material} • ${s.category}</span>
-            `;
-            row.onclick = () => infoLoadShaftDetail(s.shaft_id);
-            list.appendChild(row);
-          });
-        })
-        .withFailureHandler(() => {
-          skel.style.display = 'none';
-          list.style.display = 'block';
-          list.innerHTML = '<div class="error">Laden mislukt</div>';
-        })
-        .apiInfoSearchShafts(q, {});
+          <button class="btn btn-ghost"
+                  onclick="showAiConfirm('${m.shaft_id}')">
+            ✨ ${m.ai_summary ? 'AI opnieuw genereren' : 'Genereer AI samenvatting'}
+          </button>
+        </div>
+      `;
+
+      el.innerHTML = html;
     }
+
 
 
     function infoLoadShaftDetail(shaftId) {
