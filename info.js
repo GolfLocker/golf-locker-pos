@@ -9,6 +9,7 @@ let INFO_CACHE = {
   lengthsStandard: null,
   lengthsByBrand: null,
   lofts: null,
+  inkooppartners: null, // ✅ nieuw
 };
 
 let INFO_RUNTIME_CACHE = {
@@ -271,6 +272,7 @@ function resetInfoCache_() {
     lengthsStandard: null,
     lengthsByBrand: null,
     lofts: null,
+    inkooppartners: null, // ✅ nieuw
   };
 }
 
@@ -385,4 +387,172 @@ function apiInfoGenerateShaftSummary(shaftId) {
   }
 }
 
+/*********************************
+ * INKOOPPARTNERS
+ *********************************/
+
+function _norm_(s){
+  return String(s || '').trim();
+}
+
+function _headersToIdx_(headers){
+  const idx = {};
+  headers.forEach((h,i)=> idx[String(h||'').toLowerCase().trim()] = i);
+  return idx;
+}
+
+function _mapPartnerRow_(headers, row, rowNumber){
+  const idx = _headersToIdx_(headers);
+
+  const get = (name) => {
+    const i = idx[String(name).toLowerCase().trim()];
+    return (i === undefined) ? '' : row[i];
+  };
+
+  const bedrijf = _norm_(get('bedrijf'));
+  const wat     = _norm_(get('wat?')) || _norm_(get('wat'));
+  const website = _norm_(get('website'));
+  const tel     = _norm_(get('telefoonnummer')) || _norm_(get('telefoon'));
+  const p1      = _norm_(get('primaire contact')) || _norm_(get('primair contact'));
+  const p2      = _norm_(get('secundair contact')) || _norm_(get('secondaire contact'));
+
+  // leeg rijtje overslaan (veilig)
+  const all = [bedrijf, wat, website, tel, p1, p2].join('');
+  if (!all) return null;
+
+  return {
+    id: rowNumber,         // ✅ stabiele id = sheet row number
+    bedrijf,
+    wat,
+    website,
+    telefoonnummer: tel,
+    primaire_contact: p1,
+    secundair_contact: p2
+  };
+}
+
+function _getInkoopPartnersIndex_(){
+  try {
+    if (INFO_CACHE && INFO_CACHE.inkooppartners) {
+      return INFO_CACHE.inkooppartners;
+    }
+
+    const { headers, rows } = getInfoSheetData_('Inkooppartners');
+
+    const items = [];
+    rows.forEach((r, i) => {
+      const obj = _mapPartnerRow_(headers, r, i + 2); // +2 want data start op rij 2
+      if (obj) items.push(obj);
+    });
+
+    // sorteer netjes op naam
+    items.sort((a,b)=> String(a.bedrijf||'').localeCompare(String(b.bedrijf||''), 'nl'));
+
+    INFO_CACHE = INFO_CACHE || {};
+    INFO_CACHE.inkooppartners = { items };
+
+    return INFO_CACHE.inkooppartners;
+  } catch(e){
+    return { items: [] };
+  }
+}
+
+function apiInfoSearchInkoopPartners(query){
+  const q = String(query || '').toLowerCase().trim();
+  const { items } = _getInkoopPartnersIndex_();
+
+  let out = items;
+
+  if (q) {
+    out = items.filter(p => {
+      const hay = (
+        (p.bedrijf||'') + ' ' +
+        (p.wat||'') + ' ' +
+        (p.website||'') + ' ' +
+        (p.telefoonnummer||'') + ' ' +
+        (p.primaire_contact||'') + ' ' +
+        (p.secundair_contact||'')
+      ).toLowerCase();
+      return hay.includes(q);
+    });
+  }
+
+  // lijst links hoeft niet alles te hebben, maar wel genoeg context
+  const list = out.map(p => ({
+    id: p.id,
+    bedrijf: p.bedrijf,
+    wat: p.wat,
+    website: p.website
+  }));
+
+  return JSON.parse(JSON.stringify({ ok:true, items: list }));
+}
+
+function apiInfoGetInkoopPartnerDetail(id){
+  try {
+    const rid = Number(id || 0);
+    if (!rid || rid < 2) {
+      return JSON.parse(JSON.stringify({ ok:false, error:'Ongeldige partner id' }));
+    }
+
+    const ss = SpreadsheetApp.openById(INFO_DB_SPREADSHEET_ID);
+    const sh = ss.getSheetByName('Inkooppartners');
+    if (!sh) {
+      return JSON.parse(JSON.stringify({ ok:false, error:'Sheet Inkooppartners niet gevonden' }));
+    }
+
+    const lastCol = sh.getLastColumn();
+    const headers = sh.getRange(1, 1, 1, lastCol).getValues()[0];
+    const row     = sh.getRange(rid, 1, 1, lastCol).getValues()[0];
+
+    const obj = _mapPartnerRow_(headers, row, rid);
+    if (!obj) {
+      return JSON.parse(JSON.stringify({ ok:false, error:'Partner niet gevonden' }));
+    }
+
+    return JSON.parse(JSON.stringify({ ok:true, item: obj }));
+  } catch(e){
+    return JSON.parse(JSON.stringify({ ok:false, error:String(e.message || e) }));
+  }
+}
+
+function apiInfoAddInkoopPartner(data) {
+  try {
+    const ss = SpreadsheetApp.openById(INFO_DB_SPREADSHEET_ID);
+    const sh = ss.getSheetByName('Inkooppartners');
+    if (!sh) {
+      return JSON.parse(JSON.stringify({
+        ok: false,
+        error: 'Sheet Inkooppartners niet gevonden'
+      }));
+    }
+
+    const headers = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+
+    const row = headers.map(h => {
+      const key = String(h || '').toLowerCase().trim();
+
+      if (key === 'bedrijf') return data.bedrijf || '';
+      if (key === 'wat?' || key === 'wat') return data.wat || '';
+      if (key === 'website') return data.website || '';
+      if (key === 'telefoonnummer' || key === 'telefoon') return data.telefoonnummer || '';
+      if (key === 'primaire contact') return data.primaire_contact || '';
+      if (key === 'secundair contact') return data.secundair_contact || '';
+
+      // onbekende kolommen leeg laten
+      return '';
+    });
+
+    sh.appendRow(row);
+
+    resetInfoCache_(); // 🔥 belangrijk
+
+    return JSON.parse(JSON.stringify({ ok: true }));
+  } catch (e) {
+    return JSON.parse(JSON.stringify({
+      ok: false,
+      error: String(e.message || e)
+    }));
+  }
+}
 

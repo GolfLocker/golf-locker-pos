@@ -1131,6 +1131,86 @@
     gap: 4px;
   }
 
+  /* ===== INFO: split layout (lijst links, kaart rechts) ===== */
+  .info-split{
+    display:grid;
+    grid-template-columns: 320px 1fr;
+    gap:14px;
+    align-items:start;
+  }
+
+  .info-list{
+    border:1px solid var(--border);
+    border-radius:12px;
+    overflow:auto;
+    max-height: 62vh;
+    background:#fff;
+  }
+
+  .info-item{
+    padding:10px 12px;
+    border-bottom:1px solid var(--border);
+    cursor:pointer;
+  }
+
+  .info-item:hover{ background: rgba(0,0,0,.03); }
+  .info-item.active{
+    background: var(--accent-light);
+    border-left: 4px solid var(--accent);
+    padding-left: 8px;
+  }
+
+  .info-item .title{
+    font-weight:600;
+  }
+  .info-item .sub{
+    font-size:12px;
+    color: var(--muted);
+    margin-top:2px;
+  }
+
+  .info-detail{
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:14px;
+    background:#fff;
+    min-height: 200px;
+  }
+
+  @media (max-width: 900px){
+    .info-split{ grid-template-columns: 1fr; }
+    .info-list{ max-height: 40vh; }
+  }
+
+  /* ===== Inkooppartner modal form ===== */
+
+  .ip-form-grid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:12px 14px;
+    margin-top:10px;
+  }
+
+  .ip-field{
+    display:flex;
+    flex-direction:column;
+  }
+
+  .ip-field label{
+    font-size:13px;
+    color: var(--muted);
+    margin-bottom:4px;
+  }
+
+  /* mobiel: 1 kolom */
+  @media (max-width: 640px){
+    .ip-form-grid{
+      grid-template-columns: 1fr;
+    }
+  }
+
+
+
 </style>
 </head>
 <body>
@@ -1721,7 +1801,7 @@
             <!-- ACTIES -->
             <div style="margin-bottom:16px;">
               <button class="btn btn-primary" onclick="toggleAddShaftForm()">
-                ➕ Nieuwe shaft
+                ＋ Nieuwe shaft
               </button>
             </div>
 
@@ -1796,6 +1876,7 @@
                 <input
                   type="text"
                   id="shaftSearchInput"
+                  class="pill"
                   placeholder="Zoek shaft (merk, model...)"
                   oninput="infoSearchShafts()"
                   style="margin-bottom:12px;"
@@ -1863,6 +1944,7 @@
 
                 <input
                   id="lengthBrandInput"
+                  class="pill"
                   placeholder="Merk (bijv. Callaway)"
                   oninput="loadBrandLengths()"
                   style="margin-bottom:12px;"
@@ -1917,6 +1999,7 @@
 
               <input
                 id="loftBrandInput"
+                class="pill"
                 placeholder="Merk (bijv. Callaway)"
                 oninput="loadLofts()"
                 style="margin-bottom:12px;"
@@ -1937,8 +2020,41 @@
 
 
         <section id="view-inkoop-partners" class="view">
-          <h1>Inkoop partners Info Volgt</h1>
+          <div class="wrap">
+            <div class="panel">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="margin:0;">Inkooppartners</h3>
+                <button class="btn btn-primary" onclick="openInkoopPartnerModal()">＋ Partner</button>
+              </div>
+
+              <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; margin-bottom:10px;">
+                <div style="flex:2; min-width:240px;">
+                  <label>Zoek (alle velden)</label>
+                  <input id="inkoopPartnersSearch" class="pill" placeholder="Typ om te zoeken..." />
+                </div>
+                <div style="flex:1; min-width:180px;">
+                  <label>&nbsp;</label>
+                  <div id="inkoopPartnersMeta" class="muted" style="text-align:left;">—</div>
+                </div>
+              </div>
+
+              <div class="info-split">
+                <div class="info-list" id="inkoopPartnersList">
+                  <div class="skeleton skeleton-row"></div>
+                  <div class="skeleton skeleton-row"></div>
+                  <div class="skeleton skeleton-row"></div>
+                </div>
+
+                <div class="info-detail" id="inkoopPartnersDetail">
+                  <div class="muted">Selecteer links een partner.</div>
+                </div>
+              </div>
+
+            </div>
+          </div>
         </section>
+
+
 
         <section id="view-prijzen" class="view">
           <h1>Verkochte artikelen tbv prijzen</h1>
@@ -5055,10 +5171,12 @@
     /*INFO*/
 
     let SHAFT_DETAIL_CACHE = {};
+    let SHAFT_LIST_CACHE = []; // 👈 toevoegen
+    let BRAND_LENGTHS_CACHE = [];
 
     function infoSearchShafts() {
       const input = document.getElementById('shaftSearchInput');
-      const q = input ? input.value : '';
+      const q = (input?.value || '').toLowerCase().trim();
 
       const skel = document.getElementById('shaftListSkeleton');
       const list = document.getElementById('shaftResults');
@@ -5066,40 +5184,75 @@
       skel.style.display = 'block';
       list.style.display = 'none';
 
-      google.script.run
-      .withSuccessHandler(res => {
+      // 🔑 Eerste keer: backend call
+      if (!SHAFT_LIST_CACHE.length) {
+        google.script.run
+          .withSuccessHandler(res => {
+            skel.style.display = 'none';
+            list.style.display = 'block';
+            list.innerHTML = '';
+
+            if (!res || !res.ok || !res.items?.length) {
+              list.innerHTML = '<div class="muted">Geen resultaten</div>';
+              return;
+            }
+
+            // Cache vullen
+            SHAFT_LIST_CACHE = res.items;
+            SHAFT_DETAIL_CACHE = {};
+
+            res.items.forEach(item => {
+              SHAFT_DETAIL_CACHE[item.master.shaft_id] = item;
+            });
+
+            renderShaftListFiltered(q);
+          })
+          .apiInfoGetAllShaftsWithDetails();
+      } else {
+        // 🔁 Alleen frontend filteren
         skel.style.display = 'none';
         list.style.display = 'block';
-        list.innerHTML = '';
-
-        if (!res || !res.ok || !res.items.length) {
-          list.innerHTML = '<div class="muted">Geen resultaten</div>';
-          return;
-        }
-
-        // 🔑 CACHE VULLEN
-        SHAFT_DETAIL_CACHE = {};
-        res.items.forEach(item => {
-          SHAFT_DETAIL_CACHE[item.master.shaft_id] = item;
-        });
-
-        // Lijst renderen
-        res.items.forEach(item => {
-          const s = item.master;
-          const row = document.createElement('div');
-          row.className = 'shaft-row';
-          row.innerHTML = `
-            <strong>${s.brand}</strong><br>
-            ${s.model}<br>
-            <span class="muted">${s.material} • ${s.category}</span>
-          `;
-          row.onclick = () => renderShaftDetailFromCache(s.shaft_id);
-          list.appendChild(row);
-        });
-      })
-      .apiInfoGetAllShaftsWithDetails();
-
+        renderShaftListFiltered(q);
+      }
     }
+
+    function renderShaftListFiltered(query) {
+      const list = document.getElementById('shaftResults');
+      list.innerHTML = '';
+
+      const q = (query || '').toLowerCase();
+
+      const filtered = SHAFT_LIST_CACHE.filter(item => {
+        const s = item.master;
+        const haystack = `
+          ${s.brand || ''}
+          ${s.model || ''}
+          ${s.material || ''}
+          ${s.category || ''}
+        `.toLowerCase();
+
+        return !q || haystack.includes(q);
+      });
+
+      if (!filtered.length) {
+        list.innerHTML = '<div class="muted">Geen resultaten</div>';
+        return;
+      }
+
+      filtered.forEach(item => {
+        const s = item.master;
+        const row = document.createElement('div');
+        row.className = 'shaft-row';
+        row.innerHTML = `
+          <strong>${s.brand}</strong><br>
+          ${s.model}<br>
+          <span class="muted">${s.material} • ${s.category}</span>
+        `;
+        row.onclick = () => renderShaftDetailFromCache(s.shaft_id);
+        list.appendChild(row);
+      });
+    }
+
 
     function renderShaftDetailFromCache(shaftId) {
       const el = document.getElementById('shaftDetail');
@@ -5514,21 +5667,59 @@
       }).apiInfoCalculateFit(type, val);
     }
 
-    function loadBrandLengths() {
-      const brand = document.getElementById('lengthBrandInput').value.trim();
-      const el = document.getElementById('brandLengthsResult');
-      const skel = document.getElementById('lengthsBrandSkeleton');
-      skel.style.display = 'block';
-
-
-      if (!brand) {
-        el.innerHTML = '<div class="muted">Voer een merk in</div>';
+    function initBrandLengthsCache(cb) {
+      if (BRAND_LENGTHS_CACHE.length) {
+        cb?.();
         return;
       }
 
-      el.innerHTML = 'Laden...';
+      google.script.run
+        .withSuccessHandler(res => {
+          if (!res || !res.ok || !res.items) {
+            BRAND_LENGTHS_CACHE = [];
+          } else {
+            BRAND_LENGTHS_CACHE = res.items;
+          }
+          cb?.();
+        })
+        .withFailureHandler(() => {
+          BRAND_LENGTHS_CACHE = [];
+          cb?.();
+        })
+        .apiInfoGetBrandLengths(''); // 👈 ALLES ophalen
+    }
 
-      google.script.run.withSuccessHandler(res => {
+
+    function loadBrandLengths() {
+      const query = document.getElementById('lengthBrandInput').value
+        .toLowerCase()
+        .trim();
+
+      const el = document.getElementById('brandLengthsResult');
+      const skel = document.getElementById('lengthsBrandSkeleton');
+
+      skel.style.display = 'block';
+      el.style.display = 'none';
+
+      initBrandLengthsCache(() => {
+        skel.style.display = 'none';
+        el.style.display = 'block';
+
+        if (!query) {
+          el.innerHTML = '<div class="muted">Voer een merk in</div>';
+          return;
+        }
+
+        const filtered = BRAND_LENGTHS_CACHE.filter(x =>
+          (x.brand || '').toLowerCase().includes(query)
+        );
+
+        if (!filtered.length) {
+          el.innerHTML = '<div class="muted">Geen resultaten</div>';
+          return;
+        }
+
+        // standaard lengtes map
         google.script.run.withSuccessHandler(std => {
           const stdMap = {};
           std.items.forEach(x => {
@@ -5538,21 +5729,23 @@
           let html = `
             <table>
               <tr>
+                <th>Merk</th>
                 <th>Club</th>
-                <th>${brand}</th>
+                <th>Lengte</th>
                 <th>Standaard</th>
                 <th>Verschil</th>
               </tr>
           `;
 
-          res.items.forEach(x => {
+          filtered.forEach(x => {
             const stdLen = stdMap[x.club_type];
-            const diff = (stdLen != null)
+            const diff = stdLen != null
               ? (Number(x.length_in) - stdLen).toFixed(2)
               : '';
 
             html += `
               <tr>
+                <td>${x.brand}</td>
                 <td>${x.club_type}</td>
                 <td>${x.length_in}</td>
                 <td>${stdLen ?? ''}</td>
@@ -5562,18 +5755,11 @@
           });
 
           html += '</table>';
-          skel.style.display = 'none';
-          el.style.display = 'block';
           el.innerHTML = html;
-        })
-        .apiInfoGetStandardLengths();
-      })
-      .withFailureHandler(err => {
-          skel.style.display = 'none';
-          alert(err.message || err);
-        })
-      .apiInfoGetBrandLengths(brand);
+        }).apiInfoGetStandardLengths();
+      });
     }
+
 
     function loadLofts() {
       const brand = document.getElementById('loftBrandInput').value.trim();
@@ -5648,6 +5834,212 @@
       }
 
     });
+
+    // ===== Inkooppartners UI =====
+    let _inkoopPartnersInitDone = false;
+    let _inkoopPartnersSelectedId = null;
+    const _inkoopPartnersDetailCache = new Map();
+
+    function _renderInkoopPartnersList(items){
+      const list = document.getElementById('inkoopPartnersList');
+      if (!list) return;
+
+      if (!items || !items.length){
+        list.innerHTML = `<div class="muted" style="padding:12px;">Geen resultaten</div>`;
+        return;
+      }
+
+      list.innerHTML = '';
+      items.forEach(p => {
+        const div = document.createElement('div');
+        div.className = 'info-item' + (String(p.id) === String(_inkoopPartnersSelectedId) ? ' active' : '');
+        div.dataset.id = p.id;
+        div.innerHTML = `
+          <div class="title">${escapeHtml(p.bedrijf || '-')}</div>
+          <div class="sub">${escapeHtml(p.wat || '')}</div>
+        `;
+        div.onclick = () => inkoopPartnersSelect(p.id);
+        list.appendChild(div);
+      });
+    }
+
+    function _renderInkoopPartnerDetail(item){
+      const box = document.getElementById('inkoopPartnersDetail');
+      if (!box) return;
+
+      const bedrijf = item?.bedrijf || '-';
+      const wat     = item?.wat || '';
+      const website = item?.website || '';
+      const tel     = item?.telefoonnummer || '';
+      const p1      = item?.primaire_contact || '';
+      const p2      = item?.secundair_contact || '';
+
+      const siteLink = website
+        ? `<a href="${escapeHtml(website)}" target="_blank" rel="noopener">${escapeHtml(website)}</a>`
+        : '-';
+
+      const telLink = tel
+        ? `<a href="tel:${escapeHtml(tel)}">${escapeHtml(tel)}</a>`
+        : '-';
+
+      box.innerHTML = `
+        <h3 style="margin:0 0 6px;">${escapeHtml(bedrijf)}</h3>
+        ${wat ? `<div class="muted" style="margin-bottom:10px;">${escapeHtml(wat)}</div>` : ''}
+
+        <div style="display:grid; grid-template-columns: 140px 1fr; gap:8px 12px; align-items:center;">
+          <div class="muted">Website</div><div>${siteLink}</div>
+          <div class="muted">Telefoon</div><div>${telLink}</div>
+          <div class="muted">Primair</div><div>${escapeHtml(p1 || '-')}</div>
+          <div class="muted">Secundair</div><div>${escapeHtml(p2 || '-')}</div>
+        </div>
+      `;
+    }
+
+    function _loadInkoopPartners(q){
+      const meta = document.getElementById('inkoopPartnersMeta');
+      const list = document.getElementById('inkoopPartnersList');
+      const detail = document.getElementById('inkoopPartnersDetail');
+
+      if (meta) meta.textContent = 'Laden…';
+      if (list) list.innerHTML = `
+        <div class="skeleton skeleton-row"></div>
+        <div class="skeleton skeleton-row"></div>
+        <div class="skeleton skeleton-row"></div>
+      `;
+      if (detail) detail.innerHTML = `<div class="muted">Selecteer links een partner.</div>`;
+
+      google.script.run
+        .withSuccessHandler(res => {
+          const items = res?.items || [];
+          if (meta) meta.textContent = `${items.length} resultaat${items.length === 1 ? '' : 'en'}`;
+
+          _renderInkoopPartnersList(items);
+
+          // auto-select eerste als niets gekozen
+          if (!_inkoopPartnersSelectedId && items.length){
+            inkoopPartnersSelect(items[0].id);
+          }
+        })
+        .withFailureHandler(err => {
+          if (meta) meta.textContent = 'Fout bij laden';
+          if (list) list.innerHTML = `<div class="muted" style="padding:12px;">Fout: ${escapeHtml(err?.message || err)}</div>`;
+        })
+        .apiInfoSearchInkoopPartners(q || '');
+    }
+
+    function inkoopPartnersSelect(id){
+      _inkoopPartnersSelectedId = id;
+
+      // detail uit cache of backend
+      if (_inkoopPartnersDetailCache.has(String(id))){
+        _renderInkoopPartnerDetail(_inkoopPartnersDetailCache.get(String(id)));
+        return;
+      }
+
+      const box = document.getElementById('inkoopPartnersDetail');
+      if (box) box.innerHTML = `<div class="muted">Details laden…</div>`;
+
+      google.script.run
+        .withSuccessHandler(res => {
+          if (!res || !res.ok){
+            if (box) box.innerHTML = `<div class="muted">Kon details niet laden</div>`;
+            return;
+          }
+          _inkoopPartnersDetailCache.set(String(id), res.item);
+          _renderInkoopPartnerDetail(res.item);
+        })
+        .withFailureHandler(err => {
+          if (box) box.innerHTML = `<div class="muted">Fout: ${escapeHtml(err?.message || err)}</div>`;
+        })
+        .apiInfoGetInkoopPartnerDetail(id);
+
+        // 🔹 active state in lijst bijwerken (zonder reload)
+        document
+          .querySelectorAll('#inkoopPartnersList .info-item')
+          .forEach(el => {
+            el.classList.toggle(
+              'active',
+              String(el.dataset.id) === String(id)
+            );
+          });
+
+          }
+
+    // Expose voor showView hook
+    window.loadInkoopPartners = function(){
+      // 1x listeners
+      if (!_inkoopPartnersInitDone){
+        _inkoopPartnersInitDone = true;
+
+        const inp = document.getElementById('inkoopPartnersSearch');
+        let t = null;
+
+        if (inp){
+          inp.addEventListener('input', () => {
+            clearTimeout(t);
+            t = setTimeout(() => {
+              _inkoopPartnersSelectedId = null;
+              _loadInkoopPartners(inp.value);
+            }, 200);
+          });
+        }
+      }
+
+      _loadInkoopPartners(
+        (document.getElementById('inkoopPartnersSearch')?.value || '').trim()
+      );
+    };
+
+    function openInkoopPartnerModal(){
+      document.getElementById('inkoopPartnerModal').style.display = 'flex';
+      document.getElementById('ipMsg').textContent = '';
+      }
+
+      function closeInkoopPartnerModal(){
+      document.getElementById('inkoopPartnerModal').style.display = 'none';
+      }
+
+      function saveInkoopPartner(){
+      const data = {
+        bedrijf: document.getElementById('ipBedrijf').value.trim(),
+        wat: document.getElementById('ipWat').value.trim(),
+        website: document.getElementById('ipWebsite').value.trim(),
+        telefoonnummer: document.getElementById('ipTel').value.trim(),
+        primaire_contact: document.getElementById('ipP1').value.trim(),
+        secundair_contact: document.getElementById('ipP2').value.trim(),
+      };
+
+      if (!data.bedrijf){
+        document.getElementById('ipMsg').textContent = 'Bedrijf is verplicht';
+        return;
+      }
+
+      document.getElementById('ipMsg').textContent = 'Opslaan…';
+
+      google.script.run
+        .withSuccessHandler(res => {
+          if (!res || !res.ok){
+            document.getElementById('ipMsg').textContent =
+              res?.error || 'Opslaan mislukt';
+            return;
+          }
+
+          closeInkoopPartnerModal();
+
+          // velden resetten
+          ['ipBedrijf','ipWat','ipWebsite','ipTel','ipP1','ipP2']
+            .forEach(id => document.getElementById(id).value = '');
+
+          // 🔄 lijst herladen
+          _inkoopPartnersSelectedId = null;
+          _loadInkoopPartners('');
+        })
+        .withFailureHandler(err => {
+          document.getElementById('ipMsg').textContent =
+            String(err?.message || err);
+        })
+        .apiInfoAddInkoopPartner(data);
+    }
 
 
   </script>
@@ -7054,6 +7446,19 @@
           }, 0);
         }
 
+        if (viewName === 'view-info-lengtes') {
+          showLengthsTab('brand');
+
+          // 🔑 EXPLICIET laden (betrouwbaar)
+          setTimeout(() => {
+            loadBrandLengths();
+          }, 0);
+        }
+
+        if (viewName === 'inkoop-partners') {
+          loadInkoopPartners?.();
+        }
+
         if (viewName === 'view-info-lofts') {
           // 🔑 ook hier expliciet
           setTimeout(() => {
@@ -7114,7 +7519,7 @@
       </div>
     </div>
 
-      <!-- ===== START SESSIE MODAL ===== -->
+  <!-- ===== START SESSIE MODAL ===== -->
     <div id="startSessionModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:200;">
       <div style="background:#fff; max-width:360px; margin:20vh auto; padding:20px; border-radius:10px;">
         <h3>Vul start cash in</h3>
@@ -7127,7 +7532,7 @@
       </div>
     </div>
 
-    <!-- ===== EIND SESSIE MODAL ===== -->
+  <!-- ===== EIND SESSIE MODAL ===== -->
     <div id="endSessionModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:200;">
       <div style="background:#fff; max-width:360px; margin:20vh auto; padding:20px; border-radius:10px;">
         <h3>Vul eind cash in</h3>
@@ -7204,6 +7609,55 @@
         <div class="muted" id="voorraadEditMsg" style="margin-top:8px;"></div>
       </div>
     </div>
+
+    <div id="inkoopPartnerModal"
+      style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:9999; align-items:center; justify-content:center;">
+      <div class="panel" style="width:100%; max-width:480px;">
+        <h3>Inkooppartner toevoegen</h3>
+
+          <div class="ip-form-grid">
+
+            <div class="ip-field">
+              <label>Bedrijf *</label>
+              <input id="ipBedrijf" class="pill" />
+            </div>
+
+            <div class="ip-field">
+              <label>Wat?</label>
+              <input id="ipWat" class="pill" />
+            </div>
+
+            <div class="ip-field">
+              <label>Website</label>
+              <input id="ipWebsite" class="pill" />
+            </div>
+
+            <div class="ip-field">
+              <label>Telefoonnummer</label>
+              <input id="ipTel" class="pill" />
+            </div>
+
+            <div class="ip-field">
+              <label>Primair contact</label>
+              <input id="ipP1" class="pill" />
+            </div>
+
+            <div class="ip-field">
+              <label>Secundair contact</label>
+              <input id="ipP2" class="pill" />
+            </div>
+
+          </div>
+
+        <div style="display:flex; gap:10px; margin-top:14px; justify-content:flex-end;">
+          <button class="btn" onclick="closeInkoopPartnerModal()">Annuleren</button>
+          <button class="btn btn-primary" onclick="saveInkoopPartner()">Opslaan</button>
+        </div>
+
+        <div id="ipMsg" class="muted" style="margin-top:8px;"></div>
+      </div>
+    </div>
+
 
 
       </div>
