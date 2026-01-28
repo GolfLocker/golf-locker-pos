@@ -2067,27 +2067,11 @@
 
         <!-- Sessie -->
         <section id="view-sessie-vandaag" class="view">
-
-        </section>
-
-        <section id="view-kas-overzicht" class="view">
-          <h1>Kassalade overzicht</h1>
-          <div>
-            <button class="btn" onclick="openEndSessionModal()">Sessie afsluiten</button>
-          </div>
-        </section>
-
-        <section id="view-analytics-sessie" class="view">
+          <h2>overzicht van de dag</h2>
           <div class="wrap">
             <div class="sessie-grid">
-              <!-- Header -->
-              <div class="sessie-card col-12" id="sessieHeader">
-                <div class="skeleton skel-line" style="width:220px"></div>
-                <div class="skeleton skel-line" style="width:160px; margin-top:6px"></div>
-              </div>
-
               <!-- Vandaag -->
-              <div class="sessie-card col-4">
+              <div class="sessie-card col-6">
                 <h4>Vandaag</h4>
                 <div id="sessieToday">
                   <div class="skeleton skel-big"></div>
@@ -2097,17 +2081,112 @@
                 </div>
               </div>
 
-              <!-- Kas -->
-              <div class="sessie-card col-4">
-                <h4>Kas</h4>
-                <div id="sessieCash">
-                  <div class="skeleton skel-big"></div>
-                  <div class="skeleton skel-line"></div>
-                  <div class="skeleton skel-line"></div>
-                  <div class="skeleton skel-line"></div>
-                </div>
+            </div>
+
+          </div>
+        </section>
+
+        <section id="view-kas-overzicht" class="view">
+          <div class="wrap">
+            <h1>Kassalade</h1>
+
+            <div class="sessie-grid">
+              <!-- Header -->
+              <div class="sessie-card col-12" id="sessieHeader">
+                <div class="skeleton skel-line" style="width:220px"></div>
+                <div class="skeleton skel-line" style="width:160px; margin-top:6px"></div>
               </div>
 
+              <!-- 🔹 BLOK 1: HUIDIGE KASINHOUD -->
+              <div class="sessie-card col-6 kas-card" id="kasOverview">
+
+                <!-- Skeleton -->
+                <div id="kasSkeleton">
+                  <div class="skeleton skel-line" style="width:180px; margin-bottom:12px"></div>
+                  <div class="skeleton skel-big" style="margin-bottom:20px"></div>
+
+                  <div class="skeleton skel-line" style="width:60%"></div>
+                  <div class="skeleton skel-line" style="width:50%"></div>
+                </div>
+
+                <!-- Content -->
+                <div id="kasContent" style="display:none">
+                  <div class="muted" style="margin-bottom:6px">Huidige kassainhoud</div>
+                  <div class="total-big" id="kasExpected">—</div>
+                </div>
+
+              </div>
+
+              <!-- 🔹 BLOK 2: MUTATIES VANDAAG -->
+              <div class="sessie-card col-6 kas-card">
+
+                <!-- Skeleton (zelfde look & feel) -->
+                <div id="kasMutationsSkeleton">
+                  <div class="skeleton skel-line" style="width:160px; margin-bottom:12px"></div>
+                  <div class="skeleton skel-line" style="width:70%"></div>
+                  <div class="skeleton skel-line" style="width:60%"></div>
+                </div>
+
+                <!-- Content -->
+                <div id="kasMutationsContent" style="display:none">
+                  <div class="muted" style="margin-bottom:10px">Mutaties vandaag</div>
+
+                  <div class="kas-breakdown">
+                    <div>
+                      <span class="muted">Contant verkocht</span>
+                      <strong id="kasSales">—</strong>
+                    </div>
+
+                    <div>
+                      <span class="muted">Kasuitgaven</span>
+                      <strong id="kasMutations">—</strong>
+                    </div>
+
+                    <div class="kas-meta">
+                      <span class="muted">Laatste telling</span><br>
+                      <strong id="kasBase">—</strong>
+                    </div>
+
+                  </div>
+                  <div class="kas-meta muted" id="kasLastTelling">—</div>
+                </div>
+
+              </div>
+
+            </div>
+          </div>
+
+          <div class="wrap">
+            <!-- 🔹 ACTIES -->
+            <div class="sessie-card col-6 kas-card">
+              <h4>Kasactie</h4>
+
+              <div class="kas-form">
+                <div>
+                  <select id="kasType" style="margin-bottom:10px; width:45%">
+                    <option value="UIT">Kasuitgave</option>
+                    <option value="TELLING">Kas tellen</option>
+                  </select>
+                </div>
+
+                <div>
+                  <input id="kasUitOmschrijving" class="pill" type="text" placeholder="Omschrijving">
+                  <input id="kasUitBedrag" class="pill" type="number" step="0.01" placeholder="Bedrag">
+
+                  <button class="btn btn-primary" onclick="submitKasMutatie()">
+                    Opslaan
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+
+        <section id="view-analytics-sessie" class="view">
+          <div class="wrap">
+            <div class="sessie-grid">
               <!-- Omzet -->
               <div class="sessie-card col-4">
                 <h4>Omzet</h4>
@@ -3001,7 +3080,7 @@
     }
 
     function load(){
-      checkSessionOnLoad();
+      //checkSessionOnLoad();
       refreshActiveCodeStatus();
 
       runWithTimeout((ok,fail)=>{
@@ -3944,7 +4023,7 @@
       .getTodaySession();
   }
 
-  function openStartSessionModal(){
+  /*function openStartSessionModal(){
     const m = document.getElementById('startSessionModal');
     const i = document.getElementById('startCashInput');
     m.style.display = 'block';
@@ -3965,7 +4044,7 @@
     google.script.run
       .withSuccessHandler(() => showToast('Sessie gestart'))
       .openSession(withValue ? val : null);
-  }
+  }*/
 
   // ===== SESSIE AUTO REFRESH =====
   let sessieAutoRefreshTimer = null;
@@ -3983,7 +4062,7 @@
       sessieAutoRefreshTimer = null;
     }
   }
-
+/*
   function activateSessionFromHeader(){
     google.script.run
       .withSuccessHandler(res => {
@@ -4013,7 +4092,7 @@
         openStartSessionModal();
       })
       .closeSession(withValue ? val : null);
-  }
+  }*/
 
   function renderSessionLoading(){
     document.getElementById('sessieHeader').innerHTML =
@@ -4022,8 +4101,8 @@
     document.getElementById('sessieToday').innerHTML =
       '<span class="muted">Laden…</span>';
 
-    document.getElementById('sessieCash').innerHTML =
-      '<span class="muted">Laden…</span>';
+    /*document.getElementById('sessieCash').innerHTML =
+      '<span class="muted">Laden…</span>';*/
 
     document.getElementById('sessieTotals').innerHTML =
       '<span class="muted">Laden…</span>';
@@ -4168,9 +4247,9 @@
       year: 'numeric'
     });
 
-    const activateBtn = isClosed
+    const activateBtn = /*isClosed
       ? `<button class="btn-sessie" onclick="activateSessionFromHeader()">Sessie activeren</button>`
-      : '';
+      : */'';
 
     const statusBadge = isClosed
       ? `<span class="sessie-active-badge" style="background:#e5e7eb;color:#374151">GESLOTEN</span>`
@@ -4279,14 +4358,14 @@
 
     /* =========================
       KAS
-    ========================= */
+    ========================= 
     document.getElementById('sessieCash').innerHTML = `
       <div class="sessie-stat"><span>Start cash</span><strong>${euroSafe(d.cash.startCash)}</strong></div>
       <div class="sessie-stat"><span>Eind cash</span><strong>${euroSafe(d.cash.endCash)}</strong></div>
       <div class="sessie-stat"><span>Contant verkocht</span><strong>${euroSafe(d.cash.cashSales)}</strong></div>
       <div class="sessie-stat"><span>Verschil</span><strong>${euroSafe(d.cash.diff)}</strong></div>
       <div class="sessie-stat"><span>Logisch</span><strong>${d.cash.logical || '-'}</strong></div>
-    `;
+    `;*/
 
     /* =========================
       TOTALEN
@@ -4476,6 +4555,99 @@
   function onSessionMonthChange(){
     loadSessionDashboard();
   }
+
+  function euroSafe(v){
+    return '€ ' + Number(v || 0).toLocaleString('nl-NL', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  }
+
+  function loadKasOverview(){
+    const skel1 = document.getElementById('kasSkeleton');
+    const cont1 = document.getElementById('kasContent');
+
+    const skel2 = document.getElementById('kasMutationsSkeleton');
+    const cont2 = document.getElementById('kasMutationsContent');
+
+    // 🔹 Skeletons aan
+    if (skel1) skel1.style.display = 'block';
+    if (cont1) cont1.style.display = 'none';
+
+    if (skel2) skel2.style.display = 'block';
+    if (cont2) cont2.style.display = 'none';
+
+    google.script.run
+      .withSuccessHandler(d => {
+        if (!d || d.ok !== true) return;
+
+        // 🔹 Data vullen
+        document.getElementById('kasExpected').textContent =
+          euroSafe(d.expectedCash);
+
+        document.getElementById('kasBase').textContent =
+          euroSafe(d.baseCash);
+
+        document.getElementById('kasSales').textContent =
+          euroSafe(d.cashSalesToday);
+
+        document.getElementById('kasMutations').textContent =
+          euroSafe(d.cashMutationsToday);
+
+        if (d.lastTelling && d.lastTelling.date) {
+          const dt = new Date(d.lastTelling.date);
+          document.getElementById('kasLastTelling').textContent =
+            `Laatste telling: ${dt.toLocaleDateString('nl-NL')} (${euroSafe(d.lastTelling.amount)})`;
+        } else {
+          document.getElementById('kasLastTelling').textContent =
+            'Nog geen kas-telling geregistreerd';
+        }
+
+        // 🔹 Skeletons uit → content aan
+        if (skel1) skel1.style.display = 'none';
+        if (cont1) cont1.style.display = 'block';
+
+        if (skel2) skel2.style.display = 'none';
+        if (cont2) cont2.style.display = 'block';
+      })
+      .apiGetKasOverview();
+  }
+
+
+
+  function submitKasMutatie(){
+    const type = document.getElementById('kasType').value;
+    const oms  = document.getElementById('kasUitOmschrijving').value.trim();
+    const bed  = Number(document.getElementById('kasUitBedrag').value);
+
+    if (!oms && type !== 'TELLING') {
+      alert('Vul een omschrijving in');
+      return;
+    }
+
+    if (!isFinite(bed) || bed <= 0) {
+      alert('Vul een geldig bedrag in');
+      return;
+    }
+
+    google.script.run
+      .withSuccessHandler(() => {
+        document.getElementById('kasUitOmschrijving').value = '';
+        document.getElementById('kasUitBedrag').value = '';
+        loadKasOverview();
+        showToast(type === 'TELLING'
+          ? 'Kas geteld'
+          : 'Kasmutatie opgeslagen'
+        );
+      })
+      .withFailureHandler(err => {
+        alert(err && err.message ? err.message : err);
+      })
+      .apiAddKasMutatie(type, oms, bed);
+  }
+
+
+  //======================Voorraad===========================
 
   function loadAnalyticsVoorraad() {
     const elLive = document.getElementById('voorraad-live-waarde');
@@ -7459,6 +7631,11 @@
           loadInkoopPartners?.();
         }
 
+        if (viewName === 'kas-overzicht') {
+          loadKasOverview();
+        }
+
+
         if (viewName === 'view-info-lofts') {
           // 🔑 ook hier expliciet
           setTimeout(() => {
@@ -7519,7 +7696,7 @@
       </div>
     </div>
 
-  <!-- ===== START SESSIE MODAL ===== -->
+  <!-- ===== START SESSIE MODAL ===== 
     <div id="startSessionModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:200;">
       <div style="background:#fff; max-width:360px; margin:20vh auto; padding:20px; border-radius:10px;">
         <h3>Vul start cash in</h3>
@@ -7530,9 +7707,9 @@
           <button class="btn btn-primary" onclick="confirmStartSession(true)">Doorgaan</button>
         </div>
       </div>
-    </div>
+    </div>-->
 
-  <!-- ===== EIND SESSIE MODAL ===== -->
+  <!-- ===== EIND SESSIE MODAL ===== 
     <div id="endSessionModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:200;">
       <div style="background:#fff; max-width:360px; margin:20vh auto; padding:20px; border-radius:10px;">
         <h3>Vul eind cash in</h3>
@@ -7543,7 +7720,7 @@
           <button class="btn btn-primary" onclick="confirmEndSession(true)">Doorgaan</button>
         </div>
       </div>
-    </div>
+    </div>-->
 
     <div id="tellingMissingModal"
       style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:9999; align-items:center; justify-content:center;">

@@ -49,7 +49,7 @@ function getTodaySession() {
 /**
  * Opent sessie van vandaag (maakt aan als die niet bestaat)
  * startCash mag null zijn
- */
+ 
 function openSession(startCash) {
   const ss = SpreadsheetApp.getActive();
   const sh = ss.getSheetByName(KAS_SHEET);
@@ -91,12 +91,12 @@ function openSession(startCash) {
   ]);
 
   return { ok: true, reused: false };
-}
+}*/
 
 /**
  * Sluit sessie van vandaag
  * endCash mag null zijn
- */
+ 
 function closeSession(endCash) {
   const ss = SpreadsheetApp.getActive();
   const sh = ss.getSheetByName(KAS_SHEET);
@@ -158,7 +158,7 @@ function closeSession(endCash) {
   sh.getRange(row, 8).setValue(logical);
 
   return { ok: true };
-}
+}*/
 
 /**
  * Berekent contante verkopen van vandaag uit Sales
@@ -190,7 +190,7 @@ function calculateCashSalesForToday_() {
     const d = new Date(date);
     d.setHours(0,0,0,0);
 
-    if (d.getTime() === today.getTime() && pay === 'Contant') {
+    if (d.getTime() === today.getTime() && pay === 'contant') {
       sum += tot;
     }
   }
@@ -518,7 +518,7 @@ function getPaymentCountsForMonth_(salesSh, monthKey) {
  * Activeert sessie van vandaag opnieuw
  * - Als sessie bestaat: eindtijd leegmaken
  * - Als niet bestaat: nieuwe sessie openen (zonder start cash)
- */
+ 
 function apiActivateSession() {
   const ss = SpreadsheetApp.getActive();
   const sh = ss.getSheetByName(KAS_SHEET);
@@ -538,7 +538,7 @@ function apiActivateSession() {
   // Geen sessie → nieuwe aanmaken zonder start cash
   openSession(null);
   return { ok: true, reused: false };
-}
+}*/
 
 /**
  * ==============================
@@ -722,3 +722,139 @@ function apiGetVoorraadAantallenPerTab() {
   };
 }
 
+function _getLastCashTelling_() {
+  const ss = SpreadsheetApp.getActive();
+  const sh = ss.getSheetByName(KAS_SHEET);
+  if (!sh || sh.getLastRow() < 2) {
+    return { amount: 0, date: null };
+  }
+
+  const data = sh.getRange(2, 1, sh.getLastRow() - 1, 8).getValues();
+
+  // Loop van onder naar boven → laatste telling
+  for (let i = data.length - 1; i >= 0; i--) {
+    const type = String(data[i][2] || '').toUpperCase(); // kolom C
+    const amount = Number(data[i][4]); // kolom E
+    const date = data[i][0]; // kolom A
+
+    if (type === 'TELLING' && !isNaN(amount)) {
+      return {
+        amount,
+        date: (date instanceof Date) ? date : null
+      };
+    }
+  }
+
+  return { amount: 0, date: null };
+}
+
+function _getCashMutationsForToday_() {
+  const ss = SpreadsheetApp.getActive();
+  const sh = ss.getSheetByName(KAS_SHEET);
+  if (!sh || sh.getLastRow() < 2) return 0;
+
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  const data = sh.getRange(2, 1, sh.getLastRow() - 1, 8).getValues();
+
+  let sum = 0;
+
+  data.forEach(r => {
+    const date = r[0];                 // Datum
+    const type = String(r[2] || '').toUpperCase(); // Type
+    const amount = Number(r[4]);       // Bedrag
+
+    if (!(date instanceof Date)) return;
+
+    const d = new Date(date);
+    d.setHours(0,0,0,0);
+
+    if (d.getTime() !== today.getTime()) return;
+    if (isNaN(amount)) return;
+
+    if (type === 'UIT') sum += amount;
+    if (type === 'CORRECTIE') sum -= amount; // correctie kan + of -
+  });
+
+  return sum;
+}
+
+function calculateExpectedCashForToday_() {
+  // 1. Laatste telling
+  const lastTelling = _getLastCashTelling_();
+  const baseCash = Number(lastTelling.amount || 0);
+
+  // 2. Contante verkopen vandaag (bestaande bron)
+  const cashSalesToday = calculateCashSalesForToday_();
+
+  // 3. Kasmutaties vandaag
+  const cashMutationsToday = _getCashMutationsForToday_();
+
+  // Verwacht
+  const expected =
+    baseCash +
+    cashSalesToday -
+    cashMutationsToday;
+
+  return {
+    baseCash,
+    cashSalesToday,
+    cashMutationsToday,
+    expected
+  };
+}
+
+function apiGetKasOverview() {
+  const sid = getTodaySessionId_();
+  const res = calculateExpectedCashForToday_();
+  const lastTelling = _getLastCashTelling_();
+
+  return {
+    ok: true,
+    sessionId: sid,
+
+    baseCash: res.baseCash,
+    cashSalesToday: res.cashSalesToday,
+    cashMutationsToday: res.cashMutationsToday,
+    expectedCash: res.expected,
+
+    lastTelling: {
+      amount: lastTelling.amount,
+      date: lastTelling.date ? lastTelling.date.toISOString() : ''
+    }
+  };
+}
+
+function debugKasOverview() {
+  Logger.log(JSON.stringify(apiGetKasOverview(), null, 2));
+}
+
+function apiAddKasMutatie(type, omschrijving, bedrag) {
+  const ss = SpreadsheetApp.getActive();
+  const sh = ss.getSheetByName(KAS_SHEET);
+  if (!sh) throw new Error('Kas-sheet niet gevonden');
+
+  const t = String(type || '').toUpperCase();
+  if (!['UIT', 'TELLING', 'CORRECTIE'].includes(t)) {
+    throw new Error('Ongeldig kas-type');
+  }
+
+  const amt = Number(bedrag);
+  if (!isFinite(amt) || amt <= 0) {
+    throw new Error('Ongeldig bedrag');
+  }
+
+  sh.appendRow([
+    new Date(),                 // Datum
+    getTodaySessionId_(),       // Sessie
+    t,                          // Type
+    String(omschrijving || ''), // Omschrijving
+    amt,                        // Bedrag
+    'Contant',                  // Betaalwijze
+    'Handmatig',                // Bron
+    ''                           // Notitie
+  ]);
+
+  return { ok: true };
+}
